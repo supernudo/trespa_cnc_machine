@@ -1,0 +1,52 @@
+
+Plataforma CNC
+--------------
+
+Pendiente:
+- Resistencias 4k7 Digikey (deberían de estar en secretaría a la vuelta de vacas).
+- Ejes Y y Z.
+
+
+Tareas comunes: 
+- Hacer pedido componentes (2 tarjetas). (X)
+- Fabricación tarjetas control. (X)
+- Comprar componentes tarjetas control. (X)
+- Comprar encoders (X), motores (X), servos (STOCK), cables (X), fuente alimentación (X).
+
+Tareas ejes X, alpha y beta:
+- Soldadura tarjeta. (X)
+- Arreglar un servo AX12. (X)
+- Arreglar 1 motor Dunkermotoren. (FAIL) -> el eje Y tendrá que ir con un AX12.
+- Generar proyectos Aversive para maindspic y slavedspic. (X)
+- Probar prototipo y controladores de ejes. (X)
+- Funciones de aplicación especifica (X)
+- Comandos de manejo de usuario. (X)
+- Librerias Matlab. (X)
+- Testeo plataforma. (X)
+
+Ampliacion ejes Y y Z
+---------------------
+
+Materiales:
+- Tarjeta electrónica (X)
+- Motor eje Z: dunkermotoren (X)
+- Motor eje Y: AX12 de eje que falla, comprar (X)
+- Fuente de alimentación: comprobar si la que está da la suficiente corriente --> datasheet y cableado insitu. (X)
+- Encoders eje Y y Z: pedir a Diego.
+- Final de carrera óptico: pedir a Diego.
+- Final de carrera contacto: lo pone Mario. (X)
+- Varios: cable alimentación, cable datos AX12, termoretractil, pines y conectores molex.
+
+
+Tareas:
+- Desmontar AX12 de eje que no funciona.
+- Actualizar librerias tarjeta ejes antiguos, bajar la velocidad de los dinamixels, test de stress.
+
+- Desoldar componentes que no son necesarios de tarjea Eurobotics V1.0.
+- Generar proyecto Aversive para Slavedspic.
+- Funcion de calibración con herraduras opticas.
+- Ajustar controladores ejes.
+- Añadir los nuevos ejes al API de Matlab.
+- Testeo ejes, prueba de stress.
+
+
