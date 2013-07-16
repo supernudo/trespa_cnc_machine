@@ -1,0 +1,14 @@
+function scnp = cnp_init (port)
+% Initialize Control Numeric Platform (CNP)
+%
+% scnp = cnp_init(port)
+%
+% scnp: structure returned.
+% port: serial port conection (COM1 by default).
+%
+
+%% Close serial conection
+fopen(scnp.serial);
+
+end
+

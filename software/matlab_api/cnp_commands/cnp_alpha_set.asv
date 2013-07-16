@@ -1,0 +1,5 @@
+function cnp_x_a(pos_mm)
+
+cnp_cmd('axis_x', 'set', pos_mm);
+
+end
