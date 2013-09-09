@@ -33,6 +33,7 @@
 
 #include <encoders_dspic.h>
 #include <ax12.h>
+#include <dac_mc.h>
 
 #include <timer.h>
 #include <scheduler.h>
@@ -120,35 +121,68 @@ void __attribute__((__interrupt__, no_auto_psv)) _T1Interrupt(void)
 
 void io_pins_init(void)
 {
+	/***************************************
+ 	*  IO portmap and config
+ 	*/
+	
+	/* XXX: after reset all pins are inputs */
+	/* XXX: after reset all ANALOG pins are analog
+		and has disabled the read operation
+	*/
 	
 	/* leds */
 	_TRISC9 = 0;	// SLAVE_LED1
+
+	/* sensors */
+	AD1PCFGL = 0xFF;	// all analog pins are digital
+	_TRISB11 = 1;		// SENSOR1 (CALIB_Z)
+	_TRISB10 = 1;		// SENSOR2 (FC_Z_UP) 
+	_TRISB2 	= 1;		// SENSOR3 (FC_Z_DOWN)
+	_TRISA8 	= 1;		// SENSOR4 
+	_TRISC3 	= 1;		// SENSOR5
+	_TRISB4 	= 1;		// SENSOR6 (NEW AX12 UART)
+	_TRISC2 	= 1;		// SENSOR7 (BROKEN PIN)
+
+	_TRISC1  = 1;     // SLAVE_SERVO_PWM_1 (CALIB_Y)
+	_TRISC6  = 1;		// SLAVE_MOT_1_INA (FC_Y_LEFT)
+	_TRISC7  = 1;		// SLAVE_MOT_1_INB (FC_Y_RIGHT)
+
+
+	/* brushless motor (MOTOR_Z) */
+	_TRISA10 = 0; 	// SLAVE_MOT_BRUSH_REV
+	_TRISA7  = 0; 	// SLAVE_MOT_BRUSH_BREAK
+	_LATA7   = 0;	// initialy breaked
 		
-	/* encoders */	
-	/* XXX ALPHA_ENC_CHA and ALPHA_ENC_CHB swaped respect schematic */
-	_QEA1R 	= 20;	// QEA1 <- RP20(RC4) <- ALPHA_ENC_CHA
-	_TRISC4	= 1;
-	_QEB1R 	= 21;	// QEB1 <- RP21(RC5) <- ALPHA_ENC_CHB
-	_TRISC5 = 1;	
+	/* encoders */
+	_QEA1R 	= 21;	// QEA1 <- RP21(RC5) <- ENC_Z_CHA
+	_TRISC5	= 1;
+	_QEB1R 	= 20;	// QEB1 <- RP20(RC4) <- ENC_Z_CHB
+	_TRISC4  = 1;	
 	
-	_QEA2R 	= 19;	// QEA2 <- RP19(RC3) <- BETA_ENC_CHA
-	_TRISC3 = 1;	
-	_QEB2R 	= 4;	// QEB1 <- RP4(RB4)  <- BETA_ENC_CHB
-	_TRISB4	= 1;
+	_QEA2R 	= 16;	// QEA2 <- RP16(RC0) <- ENC_Y_CHA (SLAVE_SERVO_PWM_2)
+	_TRISC0  = 1;	
+	_QEB2R 	= 3;	// QEB1 <- RP4(RB3)  <- ENC_Y_CHB (SLAVE_SERVO_PWM_3)
+	_TRISB3	= 1;
 	
-
+	
 	/* uarts */
-#if 0
-	_U1RXR 	= 8;	// U1RX <- RP8(RB8) <- SLAVE_UART_RX
-	_TRISB8 = 1;	// U1RX is input
-  	_RP7R 	= 3;	// U1TX -> RP7(RB7) -> SLAVE_UART_TX
+	_U1RXR 	= 8;	// U1RX <- RP8 <- SLAVE_UART_RX
+	_TRISB8  = 1;	// U1RX is input
+  	_RP7R 	= 3;	// U1TX -> RP7 -> SLAVE_UART_TX
 	_TRISB7	= 0;	// U1TX is output
-#else	
-	_U1RXR 	= 5;	// U1RX <- RP5(RB5) <- SLAVE_UART_RX
-	_TRISB5 = 1;	// U1RX is input  	_RP6R 	= 3;	// U1TX -> RP6(RB6) -> SLAVE_UART_TX	_TRISB6	= 0;	// U1TX is output
+
+	/* AX12 motors (MOTOR_Y) */
+#ifdef OLD_SERVO_AX12	
+	_U2RXR 	= 9;	// U2RX <- RP9 <- SERVOS_AX12_UART
+  	_RP9R 	= 5;	// U2TX -> RP9 -> SERVOS_AX12_UART
+	_TRISB9	= 0;	// U2TX is output
+ 	_ODCB9 	= 1;	// For half-duplex mode RP9 is open collector
+#else
+	_U2RXR 	= 9;	// U2RX <- RP4 <- SERVOS_AX12_UART
+  	_RP4R 	= 5;	// U2TX -> RP4 -> SERVOS_AX12_UART
+	_TRISB4	= 0;	// U2TX is output
+ 	_ODCB4 	= 1;	// For half-duplex mode RP4 is open collector
 #endif
-
-	_U2RXR 	= 9;	// U2RX <- RP9 <- AX12_UART	_RP9R 	= 5;	// U2TX -> RP9 -> AX12_UART	_TRISB9	= 0;	// U2TX is output 	_ODCB9 	= 1;	// For half-duplex mode RP9 is open collector
 
 }
 
@@ -156,6 +190,8 @@ void angle_autopos(struct cs_block *csb, uint16_t ax12_id, void * enc_id, uint8_
 
 int main(void)
 {
+	/* disable interrupts */
+	cli();
 
 	/* remapeable pins */
 	io_pins_init();
@@ -166,10 +202,10 @@ int main(void)
 	/* LEDS */
 	LED1_OFF();
 
+	/* clear structures */
 	memset(&gen, 0, sizeof(gen));
 	memset(&slavedspic, 0, sizeof(slavedspic));
-	slavedspic.flags = DO_ENCODERS | DO_POWER | DO_BD;
-	
+
 	/* UART */
 	uart_init();
 	uart_register_rx_event(CMDLINE_UART, emergency);
@@ -181,8 +217,20 @@ int main(void)
 	error_register_notice(mylog);
 	error_register_debug(mylog);
 
+	/* DAC_MC */
+	dac_mc_channel_init(&gen.dac_mc_left, 1, CHANNEL_L,
+							  DAC_MC_MODE_SIGNED | DAC_MC_MODE_SIGN_INVERTED, &LATA, 10, NULL, 0);
+	dac_mc_set(&gen.dac_mc_left, 0);
+
+	
+
+
 	/* ENCODERS */
 	encoders_dspic_init();
+
+	/* DO FLAGS */
+	/* note: cs is enabled after calibration */
+	slavedspic.flags = DO_ENCODERS | DO_POWER | DO_BD;
 
 	/* TIMER */
 	timer_init();
@@ -190,18 +238,28 @@ int main(void)
 	/* SCHEDULER */
 	scheduler_init();
 
+	/* TIME event */
+	time_init(TIME_PRIO);
+
 	scheduler_add_periodical_event_priority(do_led_blink, NULL, 
-						1000000L / SCHEDULER_UNIT, 
+						100000L / SCHEDULER_UNIT, 
 						LED_PRIO);
 
+/* TODO
+	scheduler_add_periodical_event_priority(do_sensors, NULL, 
+						10000L / SCHEDULER_UNIT, 
+						SENSOR_PRIO);
+
+	scheduler_add_periodical_event_priority(do_cs, NULL, 
+						CS_PERIOD / SCHEDULER_UNIT, 
+						CS_PRIO);
+
+*/
 	/* all cs management */
 	dspic_cs_init();
 
 	/* sensors, will also init hardware adc */
 	sensor_init();
-
-	/* TIME */
-	time_init(TIME_PRIO);
 
 	/* ax12 */
 	ax12_user_init();
@@ -215,12 +273,12 @@ int main(void)
 	sei();
 
 	/* ax12 servos init, set free running mode */
+	/* XXX check parameters */
 	ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_TORQUE_ENABLE, 0x00);
 	ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_ALARM_SHUTDOWN, 0x04);
 	ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_CW_ANGLE_LIMIT_L, 0x00);
 	ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_CCW_ANGLE_LIMIT_L, 0x00);
 	ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_MOVING_SPEED_L, 0x00);
-
 
 	printf_P(PSTR("\r\n"));
 	printf_P(PSTR("I program in solder\r\n"));

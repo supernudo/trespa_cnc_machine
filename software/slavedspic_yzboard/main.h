@@ -19,6 +19,14 @@
  *
  */
 
+#ifndef __MAIN_H__
+#define __MAIN_H__
+
+#include <aversive.h>#include <aversive/error.h>
+#include <time.h>#include <rdline.h>
+#include <encoders_dspic.h>#include <dac_mc.h>
+#include <ax12.h>
+#include <pid.h>#include <quadramp.h>#include <control_system_manager.h>#include <blocking_detection_manager.h>
 
 #define LED_TOGGLE(port, bit) do {		\
 		if (port & _BV(bit))		\
@@ -30,7 +38,7 @@
 
 #define LED1_ON() 		cbi(LATC, 9)
 #define LED1_OFF() 		sbi(LATC, 9)
-#define LED1_TOGGLE() LED_TOGGLE(LATC, 9)
+#define LED1_TOGGLE() 	LED_TOGGLE(LATC, 9)
 
 #define BRAKE_ON()	 ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_TORQUE_ENABLE, 0x00)
 #define BRAKE_OFF()	 ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_TORQUE_ENABLE, 0x01)
@@ -73,6 +81,8 @@ struct genboard{
 	/* ax12 interface */
 	AX12 ax12;
 
+	/* brushless motors */	struct dac_mc dac_mc_left;
+
 	/* log */
 	uint8_t logs[NB_LOGS+1];
 	uint8_t log_level;
@@ -107,12 +117,15 @@ struct slavedspic {
 	int32_t alpha_pos_max_imp;
 	int32_t alpha_pos_min_imp;
 	int8_t	alpha_calib;
+
 	int32_t beta_pos;
 	int32_t beta_pos_max_imp;
 	int32_t beta_pos_min_imp;
 	int8_t 	beta_calib;
 
 	int8_t position_bd;
+
+
 
 	volatile int16_t ax12_alpha_speed;
 	volatile int16_t ax12_beta_speed;
@@ -142,3 +155,5 @@ extern struct slavedspic slavedspic;
 							      \
         __ret;                                                \
 })
+
+#endif

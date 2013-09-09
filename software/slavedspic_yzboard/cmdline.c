@@ -130,8 +130,8 @@ int cmdline_interact(void)
 	int16_t c;
 	
 	rdline_init(&gen.rdl, write_char, valid_buffer, complete_buffer);
-	sprintf(gen.prompt, "slavedspic > ");	
-//	snprintf(gen.prompt, sizeof(gen.prompt), "mainboard > ");	
+	sprintf(gen.prompt, "axis_yz > ");	
+//	snprintf(gen.prompt, sizeof(gen.prompt), "axis_yz > ");	
 	rdline_newline(&gen.rdl, gen.prompt);
 
 	while (1) {
