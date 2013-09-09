@@ -168,8 +168,5 @@ void dspic_cs_init(void)
 	slavedspic.alpha.on = 1;
 	slavedspic.beta.on = 1;
 
-	scheduler_add_periodical_event_priority(do_cs, NULL,
-						5000L / SCHEDULER_UNIT,
-						CS_PRIO);
 }
 
