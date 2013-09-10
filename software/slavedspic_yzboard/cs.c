@@ -60,16 +60,16 @@ static void do_cs(void *dummy)
 
 	/* control system */
 	if (slavedspic.flags & DO_CS) {
-		if (slavedspic.alpha.on)
-			cs_manage(&slavedspic.alpha.cs);
-		if (slavedspic.beta.on)
-			cs_manage(&slavedspic.beta.cs);
+		if (slavedspic.y.on)
+			cs_manage(&slavedspic.y.cs);
+		if (slavedspic.z.on)
+			cs_manage(&slavedspic.z.cs);
 	}
 
 	/* blocking detection */
 	if (slavedspic.flags & DO_BD) {
-		bd_manage_from_cs(&slavedspic.alpha.bd, &slavedspic.alpha.cs);
-		bd_manage_from_cs(&slavedspic.beta.bd, &slavedspic.beta.cs);
+		bd_manage_from_cs(&slavedspic.y.bd, &slavedspic.y.cs);
+		bd_manage_from_cs(&slavedspic.z.bd, &slavedspic.z.cs);
 	}
 
 	/* brakes */
@@ -111,62 +111,67 @@ void dump_pid(const char *name, struct pid_filter *pid)
 void dspic_cs_init(void)
 {
 
-	/* ---- CS axis alpha */
+	/* ---- CS axis Y */
+
 	/* PID */
-	pid_init(&slavedspic.alpha.pid);
-	pid_set_gains(&slavedspic.alpha.pid, 10000, 800, 20000);
-	pid_set_maximums(&slavedspic.alpha.pid, 0, 250, 1023);
-	pid_set_out_shift(&slavedspic.alpha.pid, 10);	
-	pid_set_derivate_filter(&slavedspic.alpha.pid, 4);
+	pid_init(&slavedspic.y.pid);
+	pid_set_gains(&slavedspic.y.pid, 0, 0, 0);
+	//pid_set_gains(&slavedspic.y.pid, 10000, 800, 20000);
+	pid_set_maximums(&slavedspic.y.pid, 0, 250, 1023);
+	pid_set_out_shift(&slavedspic.y.pid, 10);	
+	pid_set_derivate_filter(&slavedspic.y.pid, 4);
 
 	/* QUADRAMP */
-	quadramp_init(&slavedspic.alpha.qr);
-	quadramp_set_1st_order_vars(&slavedspic.alpha.qr, 3, 3); 	/* set speed */
-	quadramp_set_2nd_order_vars(&slavedspic.alpha.qr, 1, 1); 	/* set accel */
+	quadramp_init(&slavedspic.y.qr);
+	quadramp_set_1st_order_vars(&slavedspic.y.qr, 3, 3); 	/* set speed */
+	quadramp_set_2nd_order_vars(&slavedspic.y.qr, 1, 1); 	/* set accel */
 
 	/* CS */
-	cs_init(&slavedspic.alpha.cs);
-	cs_set_consign_filter(&slavedspic.alpha.cs, quadramp_do_filter, &slavedspic.alpha.qr);
-	cs_set_correct_filter(&slavedspic.alpha.cs, pid_do_filter, &slavedspic.alpha.pid);
-	cs_set_process_in(&slavedspic.alpha.cs, ax12_set_and_save, (void *)ALPHA_AX12);
-	cs_set_process_out(&slavedspic.alpha.cs, encoders_dspic_get_value, ALPHA_ENCODER);
-	cs_set_consign(&slavedspic.alpha.cs, 0);
+	cs_init(&slavedspic.y.cs);
+	cs_set_consign_filter(&slavedspic.y.cs, quadramp_do_filter, &slavedspic.y.qr);
+	cs_set_correct_filter(&slavedspic.y.cs, pid_do_filter, &slavedspic.y.pid);
+	cs_set_process_in(&slavedspic.y.cs, ax12_set_and_save, (void *)AX12_Y);
+	cs_set_process_out(&slavedspic.y.cs, encoders_dspic_get_value, ENCODER_Y);
+	cs_set_consign(&slavedspic.y.cs, 0);
 
 	/* Blocking detection */
-	bd_init(&slavedspic.alpha.bd);
-	bd_set_speed_threshold(&slavedspic.alpha.bd, 2);
-	bd_set_current_thresholds(&slavedspic.alpha.bd, 1500, 8000, 1000000, 50);
+	bd_init(&slavedspic.y.bd);
+	bd_set_speed_threshold(&slavedspic.y.bd, 2);
+	bd_set_current_thresholds(&slavedspic.y.bd, 1500, 8000, 1000000, 50);
 
-	/* ---- CS axis beta */
+	/* ---- CS axis Z */
+
 	/* PID */
-	pid_init(&slavedspic.beta.pid);
-	pid_set_gains(&slavedspic.beta.pid, 10000, 800, 20000);
-	pid_set_maximums(&slavedspic.beta.pid, 0, 250, 1023);
-	pid_set_out_shift(&slavedspic.beta.pid, 10);	
-	pid_set_derivate_filter(&slavedspic.beta.pid, 4);
+	pid_init(&maindspic.z.pid);
+	pid_set_gains(&maindspic.z.pid, 0, 0, 0);
+	//pid_set_gains(&maindspic.z.pid, 850, 0, 7000);
+	pid_set_maximums(&maindspic.z.pid, 0, 65000, 65000);
+	pid_set_out_shift(&maindspic.z.pid,1);	
+	pid_set_derivate_filter(&maindspic.z.pid, 1);
 
 	/* QUADRAMP */
-	quadramp_init(&slavedspic.beta.qr);
-	quadramp_set_1st_order_vars(&slavedspic.beta.qr, 3, 3); 	/* set speed */
-	quadramp_set_2nd_order_vars(&slavedspic.beta.qr, 1, 1);		/* set accel */
+	quadramp_init(&maindspic.z.qr);
+	quadramp_set_1st_order_vars(&maindspic.z.qr, NORMAL_SPEED, NORMAL_SPEED); 	/* set speed */
+	quadramp_set_2nd_order_vars(&maindspic.z.qr, 1, 1); 								/* set accel */
 
 	/* CS */
-	cs_init(&slavedspic.beta.cs);
-	cs_set_consign_filter(&slavedspic.beta.cs, quadramp_do_filter, &slavedspic.beta.qr);
-	cs_set_correct_filter(&slavedspic.beta.cs, pid_do_filter, &slavedspic.beta.pid);
-	cs_set_process_in(&slavedspic.beta.cs, ax12_set_and_save, (void *)BETA_AX12);
-	cs_set_process_out(&slavedspic.beta.cs, encoders_dspic_get_value, BETA_ENCODER);
-	cs_set_consign(&slavedspic.beta.cs, 0);
+	cs_init(&maindspic.z.cs);
+	cs_set_consign_filter(&maindspic.z.cs, quadramp_do_filter, &maindspic.z.qr);
+	cs_set_correct_filter(&maindspic.z.cs, pid_do_filter, &maindspic.z.pid);
+	cs_set_process_in(&maindspic.z.cs, dac_set_and_save, DAC_MC_Z);
+	cs_set_process_out(&maindspic.z.cs, encoders_dspic_get_value, ENCODER_Z);
+	cs_set_consign(&maindspic.z.cs, 0);
 
 	/* Blocking detection */
-	bd_init(&slavedspic.beta.bd);
-	bd_set_speed_threshold(&slavedspic.beta.bd, 2);
-	bd_set_current_thresholds(&slavedspic.beta.bd, 1500, 8000, 1000000, 50);
+	bd_init(&maindspic.z.bd);
+	bd_set_speed_threshold(&maindspic.z.bd, 5);
+	bd_set_current_thresholds(&maindspic.z.bd, 100, 8000, 1000000, 30);
 
 
 	/* set them on !! */
-	slavedspic.alpha.on = 1;
-	slavedspic.beta.on = 1;
+	slavedspic.y.on = 1;
+	slavedspic.z.on = 1;
 
 }
+
 

@@ -26,18 +26,19 @@
 
 
 /* synchronize with sensor.c */
-#define S_ALPHA_L_FC 	0
-#define S_ALPHA_R_FC	1
-#define S_BETA_L_FC   	2
-#define S_BETA_R_FC   	3
-#define S_RESERVED1    	4
-#define S_RESERVED2    	5
-#define S_RESERVED3    	6
-#define S_RESERVED4    	7
+#define S_Y_CALIB 	0
+#define S_Y_FC_L	   1
+#define S_Y_FC_R   	2
+#define S_Z_CALIB   	3
+#define S_Z_FC_UP   	4
+#define S_Z_FC_DOWN	5
+#define S_RESERVED1 	6
+#define S_RESERVED2 	7
 
 #define SENSOR_MAX	8
 
-void sensor_init(void);
+/* called periodically */
+void do_sensors(void *dummy);
 
 /* get filtered values of boolean sensors */
 uint64_t sensor_get_all(void);

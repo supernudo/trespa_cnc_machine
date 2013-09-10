@@ -142,6 +142,8 @@ file_114=__mains
 file_115=ax12
 file_116=ax12
 file_117=dac_mc
+file_118=__mains
+file_119=__configs
 [GENERATED_FILES]
 file_000=no
 file_001=no
@@ -261,6 +263,8 @@ file_114=no
 file_115=no
 file_116=no
 file_117=no
+file_118=no
+file_119=no
 [OTHER_FILES]
 file_000=no
 file_001=no
@@ -380,6 +384,8 @@ file_114=no
 file_115=no
 file_116=no
 file_117=no
+file_118=no
+file_119=no
 [FILE_INFO]
 file_000=..\aversive4dspic\modules\base\cirbuf\cirbuf_get_tail.c
 file_001=..\aversive4dspic\modules\base\cirbuf\cirbuf.c
@@ -499,6 +505,8 @@ file_114=sensor.h
 file_115=..\aversive4dspic\modules\devices\servo\ax12\ax12_address.h
 file_116=..\aversive4dspic\modules\devices\servo\ax12\ax12.h
 file_117=..\aversive4dspic\modules\hardware\dspic\dac_mc\dac_mc.h
+file_118=ax12_user.h
+file_119=ax12_config.h
 [SUITE_INFO]
 suite_guid={479DDE59-4D56-455E-855E-FFF59A3DB57E}
 suite_state=

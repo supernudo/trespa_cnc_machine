@@ -51,15 +51,11 @@ void ax12_set_and_save(void *ax12_id, int32_t val)
 	if (val < -1023)
 		val = -1023;
 
-	/* set polarity and save value*/
-	if((uint16_t)ax12_id == ALPHA_AX12){
+	/* TODO set polarity and save value*/
+	if((uint16_t)ax12_id == AX12_Y){
 		val = -val;
 		slavedspic.ax12_alpha_speed = val;
 	}
-	else if((uint16_t)ax12_id == BETA_AX12){
-		val = -val;
-		slavedspic.ax12_beta_speed = val;
-	}	
 	
 	/* set ax12 sign and apply*/
 	if(val < 0){
@@ -70,4 +66,18 @@ void ax12_set_and_save(void *ax12_id, int32_t val)
 	ax12_user_write_int(&gen.ax12, (uint16_t)ax12_id,
 					    AA_MOVING_SPEED_L, (uint16_t)val);
 
+}
+
+
+void dac_set_and_save(void *dac, int32_t val)
+{
+	/* we need to do the saturation here, before saving the
+	 * value */
+	if (val > 65535)
+		val = 65535;
+	if (val < -65535)
+		val = -65535;
+	
+	maindspic.dac_x = val;
+	dac_mc_set(dac, val);
 }

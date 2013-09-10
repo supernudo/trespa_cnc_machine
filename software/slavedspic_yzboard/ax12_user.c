@@ -16,35 +16,35 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- *  Revision : $Id: ax12_user.c,v 1.4 2009/04/24 19:30:42 zer0 Exp $
+ *  Revision : $Id$
  *
  */
+
+/*   *  Copyright Robotics Association of Coslada, Eurobotics Engineering (2011) *  Javier Baliñas Santos <javier@arc-robots.org> * *  Code ported to family of microcontrollers dsPIC from *  ax12_user.c,v 1.4 2009/04/24 19:30:42 zer0 Exp */
 
 #include <aversive.h>
 #include <aversive/list.h>
 #include <aversive/wait.h>
 #include <aversive/error.h>
 
+#include <i2c.h>
 #include <ax12.h>
 #include <uart.h>
 #include <time.h>
-
-#include <pid.h>
-#include <quadramp.h>
-#include <control_system_manager.h>
-#include <blocking_detection_manager.h>
 
 #include <rdline.h>
 #include <parse.h>
 #include <parse_string.h>
 #include <parse_num.h>
 
-#include "main.h"
+#include "../common/i2c_commands.h"
+#include "state.h"
 #include "ax12_user.h"
+#include "main.h"
 
 #define AX12_ERROR(args...) ERROR(E_USER_AX12, args)
 #define AX12_NOTICE(args...) NOTICE(E_USER_AX12, args)
-#define AX12_MAX_TRIES 3
+#define AX12_MAX_TRIES 1
 
 /*
  * Cmdline interface for AX12. Use the PC to command a daisy-chain of
@@ -52,21 +52,21 @@
  * 
  * The circuit should be as following:
  *
- *    |----------|
- *    |	    uart1|------->--- PC (baudrate=115200)
- *    |		 |-------<---
- *    |	    dspic|
- *    |		 |
- *    |	    uart2|---->---+-- AX12 (baudrate 1000000)
- *    |		 |----<---| 
- *    |----------|
+ *    |-----------------------|
+ *    |	    				uart1	|------->--- PC (baudrate=115200)
+ *    |		 						|-------<---
+ *    |	    				dspic	|
+ *    |		 						|
+ *    |	  uart2_tx ---->---+-|------<>---- AX12 (baudrate 1000000)
+ *    |    uart2_rx ----<---| |
+ *    |-----------------------|
  *
  * Note that RX and TX pins of UART2 are connected together inside dspic to provide
  * a half-duplex UART emulation.
  *
  */
 
-#define AX12_TIMEOUT 15000L /* in us */
+#define AX12_TIMEOUT 1000L /* XXX in us */
 
 static uint32_t ax12_stats_ops = 0;   /* total ops */
 static uint32_t ax12_stats_fails = 0; /* number of fails */
@@ -105,7 +105,11 @@ static void ax12_send_callback(char c)
 {
 	if (ax12_state == AX12_STATE_READ) {
 		/* disable TX when last byte is pushed. */
-		if (CIRBUF_IS_EMPTY(&g_tx_fifo[1])){			_TRISB9 = 1;	// U2RX/TX pin is input		}	
+		if (CIRBUF_IS_EMPTY(&g_tx_fifo[1])){
+#ifdef OLD_SERVO_AX12			_TRISB9 = 1;	// U2RX/TX pin is input
+#else
+			_TRISB4 = 1;	// U2RX/TX pin is input
+#endif		}	
 	}
 }
 
@@ -144,14 +148,22 @@ static void ax12_switch_uart(uint8_t state)
 		IRQ_LOCK(flags);
 		ax12_nsent=0;
 		// Empty the RX buffer		// Case of two follow writes, in RX buffer		// is the status packet		while (uart_recv_nowait(1) != -1);
-		_TRISB9	= 0;	// U2RX/TX pin is output		_ODCB9 	= 1;	// open collector on		
+#ifdef OLD_SERVO_AX12
+		_TRISB9	= 0;	// U2RX/TX pin is output		_ODCB9 	= 1;	// open collector on#else
+		_TRISB4	= 0;	// U2RX/TX pin is output		_ODCB4 	= 1;	// open collector on
+#endif		
+
 		ax12_state = AX12_STATE_WRITE;
 		IRQ_UNLOCK(flags);
 	}
 	else {
 		IRQ_LOCK(flags);
 
-		if (CIRBUF_IS_EMPTY(&g_tx_fifo[1])){			_TRISB9 = 1;	// U2RX/TX pin is input
+		if (CIRBUF_IS_EMPTY(&g_tx_fifo[1])){
+#ifdef OLD_SERVO_AX12			_TRISB9 = 1;	// U2RX/TX pin is input
+#else
+			_TRISB4 = 1;	// U2RX/TX pin is input
+#endif
 		}
 
 		ax12_state = AX12_STATE_READ;
