@@ -27,7 +27,7 @@
  * interruptions, so interrupts must be enabled. On the other side, a
  * call _must not_ interrupt another one. That's why all calls to the
  * module are done either in init() functions or in a scheduler event
- * with prio=ARM_PRIO.
+ * with assigned prio.
  */
 
 /* XXX do a safe_ax12() function that will retry once or twice if we

@@ -28,6 +28,7 @@
 #include <ax12.h>
 #include <pid.h>#include <quadramp.h>#include <control_system_manager.h>#include <blocking_detection_manager.h>
 
+/* LEDS utils */
 #define LED_TOGGLE(port, bit) do {		\
 		if (port & _BV(bit))		\
 			port &= ~_BV(bit);	\
@@ -40,20 +41,22 @@
 #define LED1_OFF() 		sbi(LATC, 9)
 #define LED1_TOGGLE() 	LED_TOGGLE(LATC, 9)
 
-#define BRAKE_ON()	 ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_TORQUE_ENABLE, 0x00)
-#define BRAKE_OFF()	 ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_TORQUE_ENABLE, 0x01)
+/** Motor systems */
+#define BRAKE_ON()	 do { ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_TORQUE_ENABLE, 0x00); _LATA7 = 0;} while(0);
+#define BRAKE_OFF()	 do { ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_TORQUE_ENABLE, 0x01); _LATA7 = 1;} while(0);
 
-/* it is a 3600 imps -> 14400 because we see 1/4 period
- * for 360 deg: 14400/360 = 40 imp/deg 
- * increase it to go further */
-#define IMP_ENCODERS 3600
-#define ANGLE_IMP_DEG ((IMP_ENCODERS *4)/360.)
+#define ENC_Z_IMP_REV 3600
+#define GEAR_Z_MM_REV 1.0
+#define DIST_Z_IMP_MM ((ENC_Z_IMP_REV *4) / GEAR_Z_MM_REV)
 
-#define ALPHA_ENCODER      ((void *)1)
-#define BETA_ENCODER       ((void *)2)
+#define ENC_Y_IMP_MM  10
+#define DIST_Y_IMP_MM ((ENC_Y_IMP_MM *4))
 
-#define ALPHA_AX12	2
-#define BETA_AX12	1
+#define ENCODER_Z		((void *)1)
+#define ENCODER_Y    ((void *)2)
+
+#define AX12_Y			1
+#define DAC_MC_Z     ((void *)&gen.dac_mc_left)
 
 /** ERROR NUMS */
 #define E_USER_APP         194
@@ -61,15 +64,21 @@
 #define E_USER_CS          196
 #define E_USER_AX12        197
 
+/** EVENTS PRIORITY */
 #define LED_PRIO           170
 #define TIME_PRIO          160
 #define SENSOR_PRIO        120
 #define CS_PRIO            100
 
-#define CS_PERIOD 5000L
+/** EVENTS PERIOD */
+#define LED_PERIOD         100000L
+#define SENSOR_PERIOD      10000L
+#define CS_PERIOD          5000L
 
+/** LOGS */
 #define NB_LOGS 10
 
+/* OTHER STUFF */
 #define NORMAL_SPEED	3
 
 /* generic to all boards */
@@ -89,6 +98,8 @@ struct genboard{
 	uint8_t debug;
 };
 
+
+/* application specific */
 struct cs_block {
 	uint8_t on;
   	struct cs cs;
@@ -97,7 +108,6 @@ struct cs_block {
 	struct blocking_detection bd;
 };
 
-/* slavedspic specific */
 struct slavedspic {
 
 #define DO_ENCODERS  1
@@ -109,27 +119,23 @@ struct slavedspic {
 	uint8_t flags;                
 
 	/* control systems */
-  	struct cs_block alpha;
-  	struct cs_block beta;
+  	struct cs_block y;
+  	struct cs_block z;
 
 	/* pantil status */
-	int32_t alpha_pos;
-	int32_t alpha_pos_max_imp;
-	int32_t alpha_pos_min_imp;
-	int8_t	alpha_calib;
+	int32_t y_pos;
+	int32_t y_pos_max_imp;
+	int32_t y_pos_min_imp;
+	int8_t  y_calib;
 
-	int32_t beta_pos;
-	int32_t beta_pos_max_imp;
-	int32_t beta_pos_min_imp;
-	int8_t 	beta_calib;
+	int32_t z_pos;
+	int32_t z_pos_max_imp;
+	int32_t z_pos_min_imp;
+	int8_t  z_calib;
 
 	int8_t position_bd;
 
-
-
-	volatile int16_t ax12_alpha_speed;
-	volatile int16_t ax12_beta_speed;
-
+	volatile int16_t ax12_y_speed;
 };
 
 

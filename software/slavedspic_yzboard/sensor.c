@@ -57,27 +57,32 @@ struct sensor_filter {
 };
 
 static struct sensor_filter sensor_filter[SENSOR_MAX] = {
-	[S_ALPHA_L_FC] = { 1, 0, 0, 1, 0, 1 }, 	/* 0 */
-	[S_ALPHA_R_FC] = { 1, 0, 0, 1, 0, 1 }, 	/* 1 */
-	[S_BETA_L_FC] = { 1, 0, 0, 1, 0, 0 }, 	/* 2 */
-	[S_BETA_R_FC] = { 1, 0, 0, 1, 0, 0 }, 	/* 3 */
-	[S_RESERVED1] = { 0, 0, 0, 1, 0, 0 }, 	/* 4 */
-	[S_RESERVED2] = { 0, 0, 0, 1, 0, 0 }, 	/* 5 */
-	[S_RESERVED3] = { 0, 0, 0, 1, 0, 0 }, 	/* 6 */
-	[S_RESERVED4] = { 0, 0, 0, 1, 0, 0 }, 	/* 7 */
+	[S_Y_CALIB] 	= { 1, 0, 0, 1, 0, 1 }, 	/* 0 */
+	[S_Y_FC_L] 		= { 1, 0, 0, 1, 0, 1 }, 	/* 1 */
+	[S_Y_FC_R] 		= { 1, 0, 0, 1, 0, 0 }, 	/* 2 */
+	[S_Z_CALIB] 	= { 1, 0, 0, 1, 0, 0 }, 	/* 3 */
+	[S_Z_FC_UP] 	= { 0, 0, 0, 1, 0, 0 }, 	/* 4 */
+	[S_Z_FC_DOWN] 	= { 0, 0, 0, 1, 0, 0 }, 	/* 5 */
+	[S_RESERVED1] 	= { 0, 0, 0, 1, 0, 0 }, 	/* 6 */
+	[S_RESERVED2] 	= { 0, 0, 0, 1, 0, 0 }, 	/* 7 */
 
 };
+
 
 /* value of filtered sensors */
 static uint16_t sensor_filtered = 0;
 
 /* sensor mapping : 
- * 0:  	S_ALPHA_L_FC RB10
- * 1:  	S_ALPHA_R_FC RB11
- * 2:  	S_BETA_L_FC RA4
- * 3:  	S_BETA_R_FC RC8
- * 4-7: reserved
+ * 0:  	S_Y_CALIB 	RC1
+ * 1:  	S_Y_FC_L 	RC6
+ * 2:  	S_Y_FC_R 	RC7
+ * 3:  	S_Z_CALIB 	RB11
+ * 4:  	S_Z_FC_UP 	RB10
+ * 5:  	S_Z_FC_DOWN	RB2
+ * 6: 	reserved		RA8
+ * 7:		reserved		RC3
  */
+
 
 uint64_t sensor_get_all(void)
 {
@@ -100,10 +105,13 @@ static uint16_t sensor_read(void)
 {
 	uint16_t tmp = 0;
 
-	tmp |= (uint16_t)((PORTB & (_BV(11)|_BV(10))) >> 10) << 0;
-	tmp |= (uint16_t)((PORTA & (_BV(4))) >> 4) << 2;
-	tmp |= (uint16_t)((PORTC & (_BV(8))) >> 8) << 3;
-	/* 4 to 7 reserved */	
+	tmp |= (uint16_t)((PORTC & (_BV(1)) >> 1) << 0;
+	tmp |= (uint16_t)((PORTC & (_BV(6))) >> 6) << 1;
+	tmp |= (uint16_t)((PORTC & (_BV(7))) >> 7) << 2;
+	tmp |= (uint16_t)((PORTB & (_BV(11))) >> 11) << 3;
+	tmp |= (uint16_t)((PORTB & (_BV(10))) >> 10) << 4;
+	tmp |= (uint16_t)((PORTB & (_BV(2))) >> 2) << 5;
+	/* 6 to 7 reserved */	
 	/* add reserved sensors here */
 	
 	return tmp;
@@ -152,17 +160,10 @@ static void do_boolean_sensors(void *dummy)
 
 /************ global sensor init */
 
-/* called every 10 ms, see init below */
-static void do_sensors(void *dummy)
+/* called periodically */
+void do_sensors(void *dummy)
 {
 	do_boolean_sensors(NULL);
 }
 
-void sensor_init(void)
-{
-	/* CS EVENT */
-	scheduler_add_periodical_event_priority(do_sensors, NULL, 
-						10000L / SCHEDULER_UNIT, 
-						SENSOR_PRIO);
-}
 

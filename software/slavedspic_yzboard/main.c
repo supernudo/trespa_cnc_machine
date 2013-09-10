@@ -218,7 +218,7 @@ int main(void)
 	error_register_debug(mylog);
 
 	/* DAC_MC */
-	dac_mc_channel_init(&gen.dac_mc_left, 1, CHANNEL_L,
+	dac_mc_channel_init(DAC_MC_Z, 1, CHANNEL_L,
 							  DAC_MC_MODE_SIGNED | DAC_MC_MODE_SIGN_INVERTED, &LATA, 10, NULL, 0);
 	dac_mc_set(&gen.dac_mc_left, 0);
 
@@ -230,7 +230,7 @@ int main(void)
 
 	/* DO FLAGS */
 	/* note: cs is enabled after calibration */
-	slavedspic.flags = DO_ENCODERS | DO_POWER | DO_BD;
+	slavedspic.flags = DO_ENCODERS | DO_POWER; // TODO | DO_BD;
 
 	/* TIMER */
 	timer_init();
@@ -242,19 +242,16 @@ int main(void)
 	time_init(TIME_PRIO);
 
 	scheduler_add_periodical_event_priority(do_led_blink, NULL, 
-						100000L / SCHEDULER_UNIT, 
-						LED_PRIO);
+						100000L / SCHEDULER_UNIT, LED_PRIO);
 
-/* TODO
+
 	scheduler_add_periodical_event_priority(do_sensors, NULL, 
-						10000L / SCHEDULER_UNIT, 
-						SENSOR_PRIO);
+						10000L / SCHEDULER_UNIT, SENSOR_PRIO);
 
 	scheduler_add_periodical_event_priority(do_cs, NULL, 
-						CS_PERIOD / SCHEDULER_UNIT, 
-						CS_PRIO);
+						50000L / SCHEDULER_UNIT, CS_PRIO);
 
-*/
+
 	/* all cs management */
 	dspic_cs_init();
 
