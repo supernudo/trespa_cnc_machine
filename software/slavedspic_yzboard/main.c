@@ -32,8 +32,8 @@
 #include <uart.h>
 
 #include <encoders_dspic.h>
-#include <ax12.h>
 #include <dac_mc.h>
+#include <pwm_mc.h>
 
 #include <timer.h>
 #include <scheduler.h>
@@ -51,7 +51,6 @@
 #include "cmdline.h"
 #include "sensor.h"
 #include "actuator.h"
-#include "ax12_user.h"
 #include "cs.h"
 
 struct genboard gen;
@@ -73,6 +72,7 @@ void do_led_blink(void *dummy)
 	LED1_TOGGLE();
 
 	/* test blocking */
+#ifdef notyet
 	if(slavedspic.position_bd){
 		if(bd_get(&slavedspic.alpha.bd)){
 			hard_stop(&slavedspic.alpha, ALPHA_ENCODER);
@@ -87,7 +87,7 @@ void do_led_blink(void *dummy)
 			ERROR(E_USER_APP, "Positioning end BLOCKING!!");
 		}
 	}
-
+#endif
 #endif
 }
 
@@ -170,19 +170,25 @@ void io_pins_init(void)
 	_TRISB8  = 1;	// U1RX is input
   	_RP7R 	= 3;	// U1TX -> RP7 -> SLAVE_UART_TX
 	_TRISB7	= 0;	// U1TX is output
-
+#ifdef deprecated
 	/* AX12 motors (MOTOR_Y) */
 #ifdef OLD_SERVO_AX12	
 	_U2RXR 	= 9;	// U2RX <- RP9 <- SERVOS_AX12_UART
   	_RP9R 	= 5;	// U2TX -> RP9 -> SERVOS_AX12_UART
 	_TRISB9	= 0;	// U2TX is output
  	_ODCB9 	= 1;	// For half-duplex mode RP9 is open collector
-#else
-	_U2RXR 	= 9;	// U2RX <- RP4 <- SERVOS_AX12_UART
+#else	_U2RXR 	= 9;	// U2RX <- RP4 <- SERVOS_AX12_UART
   	_RP4R 	= 5;	// U2TX -> RP4 -> SERVOS_AX12_UART
 	_TRISB4	= 0;	// U2TX is output
  	_ODCB4 	= 1;	// For half-duplex mode RP4 is open collector
 #endif
+#endif
+
+	/* DC motors (MOTOR_Y) */
+	_TRISB12 = 0;	// SLAVE_MOT_2_INA
+	_TRISB13 = 0;	// SLAVE_MOT_2_INB
+	_LATB12  = 0;	// initialy breaked
+	_LATB13  = 0;
 
 }
 
@@ -228,6 +234,14 @@ int main(void)
 	/* ENCODERS */
 	encoders_dspic_init();
 
+	/* PWM_MC */
+	pwm_mc_channel_init(&gen.pwm_mc_mod1_ch2,
+	                    PWM_MC_MODE_BIPOLAR, 
+	                    1, 2, NULL, 0, NULL, 0);
+	pwm_mc_init(&gen.pwm_mc_mod1_ch2, 19000, 
+							CH2_COMP&PEN2H&PEN2L);
+	pwm_mc_set(&gen.pwm_mc_mod1_ch2, 0);
+
 	/* DO FLAGS */
 	/* note: cs is enabled after calibration */
 	slavedspic.flags = DO_ENCODERS | DO_POWER; // TODO | DO_BD;
@@ -258,9 +272,6 @@ int main(void)
 	/* sensors, will also init hardware adc */
 	sensor_init();
 
-	/* ax12 */
-	ax12_user_init();
-
 	wait_ms(500);
 
 	/* strat */
@@ -268,14 +279,6 @@ int main(void)
  	gen.log_level = 5;
 
 	sei();
-
-	/* ax12 servos init, set free running mode */
-	/* XXX check parameters */
-	ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_TORQUE_ENABLE, 0x00);
-	ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_ALARM_SHUTDOWN, 0x04);
-	ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_CW_ANGLE_LIMIT_L, 0x00);
-	ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_CCW_ANGLE_LIMIT_L, 0x00);
-	ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_MOVING_SPEED_L, 0x00);
 
 	printf_P(PSTR("\r\n"));
 	printf_P(PSTR("I program in solder\r\n"));

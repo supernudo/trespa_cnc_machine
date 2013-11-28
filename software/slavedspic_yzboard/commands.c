@@ -51,21 +51,14 @@ extern parse_pgm_inst_t cmd_cs_status;
 extern parse_pgm_inst_t cmd_blocking_i;
 extern parse_pgm_inst_t cmd_blocking_i_show;
 
-/* commands_ax12.c */
-//extern parse_pgm_inst_t cmd_baudrate;
-extern parse_pgm_inst_t cmd_uint16_read;
-extern parse_pgm_inst_t cmd_uint16_write;
-extern parse_pgm_inst_t cmd_uint8_read;
-extern parse_pgm_inst_t cmd_uint8_write;
-extern parse_pgm_inst_t cmd_ax12_stress;
-extern parse_pgm_inst_t cmd_ax12_dump_stats;
-
 /* commands_slavedspic.c */
 extern parse_pgm_inst_t cmd_event;
+#ifdef TODO
 extern parse_pgm_inst_t cmd_alpha_mode1;
 extern parse_pgm_inst_t cmd_alpha_mode2;
 extern parse_pgm_inst_t cmd_beta_mode1;
 extern parse_pgm_inst_t cmd_beta_mode2;
+#endif
 
 /* in progmem */
 parse_pgm_ctx_t main_ctx[] = {
@@ -78,15 +71,6 @@ parse_pgm_ctx_t main_ctx[] = {
 	(parse_pgm_inst_t *)&cmd_log_show,
 	(parse_pgm_inst_t *)&cmd_log_type,
 	(parse_pgm_inst_t *)&cmd_scheduler,
-
-	/* commands_ax12.c */
-	//(parse_pgm_inst_t *)&cmd_baudrate,
-	(parse_pgm_inst_t *)&cmd_uint16_read,
-	(parse_pgm_inst_t *)&cmd_uint16_write,
-	(parse_pgm_inst_t *)&cmd_uint8_read,
-	(parse_pgm_inst_t *)&cmd_uint8_write,
-	(parse_pgm_inst_t *)&cmd_ax12_stress,
-	(parse_pgm_inst_t *)&cmd_ax12_dump_stats,
 
 	/* commands_cs.c */
 	(parse_pgm_inst_t *)&cmd_gain,
@@ -104,10 +88,11 @@ parse_pgm_ctx_t main_ctx[] = {
 
 	/* commands_slavedspic.c */
 	(parse_pgm_inst_t *)&cmd_event,
+#ifdef TODO
 	(parse_pgm_inst_t *)&cmd_alpha_mode1,
 	(parse_pgm_inst_t *)&cmd_alpha_mode2,
 	(parse_pgm_inst_t *)&cmd_beta_mode1,
 	(parse_pgm_inst_t *)&cmd_beta_mode2,
-
+#endif
 	NULL,
 };

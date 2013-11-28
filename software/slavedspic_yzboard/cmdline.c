@@ -36,7 +36,6 @@
 
 #include <uart.h>
 
-#include <ax12.h>
 #include <time.h>
 
 #include <pid.h>

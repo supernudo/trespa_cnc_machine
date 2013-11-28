@@ -24,8 +24,9 @@
 
 #include <aversive.h>#include <aversive/error.h>
 #include <time.h>#include <rdline.h>
-#include <encoders_dspic.h>#include <dac_mc.h>
-#include <ax12.h>
+//#include <ax12.h>
+#include <encoders_dspic.h>#include <dac_mc.h>#include <pwm_mc.h>
+
 #include <pid.h>#include <quadramp.h>#include <control_system_manager.h>#include <blocking_detection_manager.h>
 
 /* LEDS utils */
@@ -55,8 +56,8 @@
 #define ENCODER_Z		((void *)1)
 #define ENCODER_Y    ((void *)2)
 
-#define AX12_Y			1
 #define DAC_MC_Z     ((void *)&gen.dac_mc_left)
+#define PWM_MC_Y		((void *)&gem.pwm_mc_mod1_ch2)
 
 /** ERROR NUMS */
 #define E_USER_APP         194
@@ -87,11 +88,9 @@ struct genboard{
 	struct rdline rdl;
 	char prompt[RDLINE_PROMPT_SIZE];
 
-	/* ax12 interface */
-	AX12 ax12;
-
 	/* brushless motors */	struct dac_mc dac_mc_left;
 
+	/* dc motors */	struct pwm_mc pwm_mc_mod1_ch2;
 	/* log */
 	uint8_t logs[NB_LOGS+1];
 	uint8_t log_level;
@@ -127,15 +126,15 @@ struct slavedspic {
 	int32_t y_pos_max_imp;
 	int32_t y_pos_min_imp;
 	int8_t  y_calib;
+	volatile int16_t y_pwm_val;
 
 	int32_t z_pos;
 	int32_t z_pos_max_imp;
 	int32_t z_pos_min_imp;
 	int8_t  z_calib;
+	volatile int16_t z_dac_val;
 
 	int8_t position_bd;
-
-	volatile int16_t ax12_y_speed;
 };
 
 

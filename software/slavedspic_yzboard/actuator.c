@@ -26,7 +26,6 @@
 
 #include <uart.h>
 #include <encoders_dspic.h>
-#include <ax12.h>
 #include <scheduler.h>
 #include <time.h>
 
@@ -39,9 +38,9 @@
 
 #include "main.h"
 #include "actuator.h"
-#include "ax12_user.h"
 
 
+#ifdef deprecated
 void ax12_set_and_save(void *ax12_id, int32_t val)
 {
 	/* we need to do the saturation here, before saving the
@@ -67,7 +66,21 @@ void ax12_set_and_save(void *ax12_id, int32_t val)
 					    AA_MOVING_SPEED_L, (uint16_t)val);
 
 }
+#endif
 
+void pwm_mc_set_and_save(void *pwm, int32_t val)
+{
+	struct pwm_mc *pwm_mc = pwm;
+
+	/* we need to do the saturation here, before saving the value */
+	if (val > pwm_mc->pwm_val_max)
+		val = pwm_mc->pwm_val_max;
+	if (val < pwm_mc->pwm_val_min)
+		val = pwm_mc->pwm_val_min;
+
+	slavedspic.y_pwm_val = val;
+	pwm_mc_set(pwm, val); 
+}
 
 void dac_set_and_save(void *dac, int32_t val)
 {
@@ -78,6 +91,6 @@ void dac_set_and_save(void *dac, int32_t val)
 	if (val < -65535)
 		val = -65535;
 	
-	maindspic.dac_x = val;
+	slavedspic.z_dac_val = val;
 	dac_mc_set(dac, val);
 }

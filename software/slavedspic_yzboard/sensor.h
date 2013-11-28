@@ -44,3 +44,5 @@ void do_sensors(void *dummy);
 uint64_t sensor_get_all(void);
 uint8_t sensor_get(uint8_t i);
 
+void sensor_init(void);
+

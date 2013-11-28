@@ -31,7 +31,6 @@
 #include <aversive/error.h>
 
 #include <uart.h>
-#include <ax12.h>
 #include <encoders_dspic.h>
 #include <time.h>
 
@@ -49,7 +48,6 @@
 #include "sensor.h"
 #include "cmdline.h"
 #include "actuator.h"
-#include "ax12_user.h"
 
 struct cmd_event_result {
 	fixed_string_t arg0;
@@ -98,7 +96,7 @@ static void cmd_event_parsed(void *parsed_result, void *data)
 		slavedspic.flags |= bit;
 	else if (!strcmp_P(res->arg2, PSTR("off"))) {
 		if (!strcmp_P(res->arg1, PSTR("cs"))) {
-		 	ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_MOVING_SPEED_L, 0x00);
+		 // TODO	ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_MOVING_SPEED_L, 0x00);
 		}
 		slavedspic.flags &= (~bit);
 	}
@@ -128,6 +126,9 @@ parse_pgm_inst_t cmd_event = {
 
 /* Application functions */
 
+/* TODO */
+
+#ifdef TODO
 
 void hard_stop(struct cs_block *csb, void * enc_id)
 {
@@ -536,3 +537,5 @@ parse_pgm_inst_t cmd_beta_mode2 = {
 		NULL,
 	},
 };
+
+#endif
