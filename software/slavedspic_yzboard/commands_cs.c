@@ -31,7 +31,6 @@
 #include <aversive/error.h>
 
 #include <uart.h>
-#include <ax12.h>
 #include <time.h>
 
 #include <pid.h>
@@ -53,11 +52,11 @@ struct csb_list {
 	struct cs_block *csb;
 };
 
-prog_char csb_alpha_str[] = "alpha";
-prog_char csb_beta_str[] = "beta";
+prog_char csb_y_str[] = "alpha";
+prog_char csb_z_str[] = "beta";
 struct csb_list csb_list[] = {
-	{ .name = csb_alpha_str, .csb = &slavedspic.alpha },
-	{ .name = csb_beta_str, .csb = &slavedspic.beta },
+	{ .name = csb_y_str, .csb = &slavedspic.y },
+	{ .name = csb_z_str, .csb = &slavedspic.z },
 };
 
 struct cmd_cs_result {

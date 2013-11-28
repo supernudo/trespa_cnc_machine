@@ -51,7 +51,7 @@
 void dump_cs(const char *name, struct cs *cs);
 
 /* called every 5 ms */
-static void do_cs(void *dummy) 
+void do_cs(void *dummy) 
 {
 	/* read encoders */
 	if (slavedspic.flags & DO_ENCODERS) {
@@ -130,7 +130,7 @@ void dspic_cs_init(void)
 	cs_init(&slavedspic.y.cs);
 	cs_set_consign_filter(&slavedspic.y.cs, quadramp_do_filter, &slavedspic.y.qr);
 	cs_set_correct_filter(&slavedspic.y.cs, pid_do_filter, &slavedspic.y.pid);
-	cs_set_process_in(&slavedspic.y.cs, ax12_set_and_save, (void *)AX12_Y);
+	cs_set_process_in(&slavedspic.y.cs, pwm_mc_set_and_save, (void *)PWM_MC_Y);
 	cs_set_process_out(&slavedspic.y.cs, encoders_dspic_get_value, ENCODER_Y);
 	cs_set_consign(&slavedspic.y.cs, 0);
 

@@ -30,7 +30,6 @@
 #include <aversive/error.h>
 
 #include <scheduler.h>
-#include <ax12.h>
 #include <pid.h>
 #include <quadramp.h>
 #include <vect_base.h>
@@ -105,12 +104,12 @@ static uint16_t sensor_read(void)
 {
 	uint16_t tmp = 0;
 
-	tmp |= (uint16_t)((PORTC & (_BV(1)) >> 1) << 0;
-	tmp |= (uint16_t)((PORTC & (_BV(6))) >> 6) << 1;
-	tmp |= (uint16_t)((PORTC & (_BV(7))) >> 7) << 2;
-	tmp |= (uint16_t)((PORTB & (_BV(11))) >> 11) << 3;
-	tmp |= (uint16_t)((PORTB & (_BV(10))) >> 10) << 4;
-	tmp |= (uint16_t)((PORTB & (_BV(2))) >> 2) << 5;
+	tmp |= (uint16_t)((PORTC & (_BV(1)) >> 1) << 0);
+	tmp |= (uint16_t)((PORTC & (_BV(6))) >> 6) << 1);
+	tmp |= (uint16_t)((PORTC & (_BV(7))) >> 7) << 2);
+	tmp |= (uint16_t)((PORTB & (_BV(11))) >> 11) << 3);
+	tmp |= (uint16_t)((PORTB & (_BV(10))) >> 10) << 4);
+	tmp |= (uint16_t)((PORTB & (_BV(2))) >> 2) << 5);
 	/* 6 to 7 reserved */	
 	/* add reserved sensors here */
 	
@@ -166,4 +165,8 @@ void do_sensors(void *dummy)
 	do_boolean_sensors(NULL);
 }
 
+void sensor_init(void)
+{
+
+}
 
