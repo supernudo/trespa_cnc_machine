@@ -31,7 +31,7 @@
 #include <aversive/error.h>
 
 #include <encoders_dspic.h>
-#include <ax12.h>
+#include <pwm_mc.h>
 #include <timer.h>
 #include <scheduler.h>
 #include <time.h>
@@ -46,7 +46,6 @@
 
 #include "main.h"
 #include "actuator.h"
-#include "ax12_user.h"
 
 void dump_cs(const char *name, struct cs *cs);
 
@@ -130,7 +129,7 @@ void dspic_cs_init(void)
 	cs_init(&slavedspic.y.cs);
 	cs_set_consign_filter(&slavedspic.y.cs, quadramp_do_filter, &slavedspic.y.qr);
 	cs_set_correct_filter(&slavedspic.y.cs, pid_do_filter, &slavedspic.y.pid);
-	cs_set_process_in(&slavedspic.y.cs, pwm_mc_set_and_save, (void *)PWM_MC_Y);
+	cs_set_process_in(&slavedspic.y.cs, pwm_mc_set_and_save, PWM_MC_Y);
 	cs_set_process_out(&slavedspic.y.cs, encoders_dspic_get_value, ENCODER_Y);
 	cs_set_consign(&slavedspic.y.cs, 0);
 
@@ -142,30 +141,30 @@ void dspic_cs_init(void)
 	/* ---- CS axis Z */
 
 	/* PID */
-	pid_init(&maindspic.z.pid);
-	pid_set_gains(&maindspic.z.pid, 0, 0, 0);
-	//pid_set_gains(&maindspic.z.pid, 850, 0, 7000);
-	pid_set_maximums(&maindspic.z.pid, 0, 65000, 65000);
-	pid_set_out_shift(&maindspic.z.pid,1);	
-	pid_set_derivate_filter(&maindspic.z.pid, 1);
+	pid_init(&slavedspic.z.pid);
+	pid_set_gains(&slavedspic.z.pid, 0, 0, 0);
+	//pid_set_gains(&slavedspic.z.pid, 850, 0, 7000);
+	pid_set_maximums(&slavedspic.z.pid, 0, 65000, 65000);
+	pid_set_out_shift(&slavedspic.z.pid,1);	
+	pid_set_derivate_filter(&slavedspic.z.pid, 1);
 
 	/* QUADRAMP */
-	quadramp_init(&maindspic.z.qr);
-	quadramp_set_1st_order_vars(&maindspic.z.qr, NORMAL_SPEED, NORMAL_SPEED); 	/* set speed */
-	quadramp_set_2nd_order_vars(&maindspic.z.qr, 1, 1); 								/* set accel */
+	quadramp_init(&slavedspic.z.qr);
+	quadramp_set_1st_order_vars(&slavedspic.z.qr, NORMAL_SPEED, NORMAL_SPEED); 	/* set speed */
+	quadramp_set_2nd_order_vars(&slavedspic.z.qr, 1, 1); 								/* set accel */
 
 	/* CS */
-	cs_init(&maindspic.z.cs);
-	cs_set_consign_filter(&maindspic.z.cs, quadramp_do_filter, &maindspic.z.qr);
-	cs_set_correct_filter(&maindspic.z.cs, pid_do_filter, &maindspic.z.pid);
-	cs_set_process_in(&maindspic.z.cs, dac_set_and_save, DAC_MC_Z);
-	cs_set_process_out(&maindspic.z.cs, encoders_dspic_get_value, ENCODER_Z);
-	cs_set_consign(&maindspic.z.cs, 0);
+	cs_init(&slavedspic.z.cs);
+	cs_set_consign_filter(&slavedspic.z.cs, quadramp_do_filter, &slavedspic.z.qr);
+	cs_set_correct_filter(&slavedspic.z.cs, pid_do_filter, &slavedspic.z.pid);
+	cs_set_process_in(&slavedspic.z.cs, dac_set_and_save, DAC_MC_Z);
+	cs_set_process_out(&slavedspic.z.cs, encoders_dspic_get_value, ENCODER_Z);
+	cs_set_consign(&slavedspic.z.cs, 0);
 
 	/* Blocking detection */
-	bd_init(&maindspic.z.bd);
-	bd_set_speed_threshold(&maindspic.z.bd, 5);
-	bd_set_current_thresholds(&maindspic.z.bd, 100, 8000, 1000000, 30);
+	bd_init(&slavedspic.z.bd);
+	bd_set_speed_threshold(&slavedspic.z.bd, 5);
+	bd_set_current_thresholds(&slavedspic.z.bd, 100, 8000, 1000000, 30);
 
 
 	/* set them on !! */

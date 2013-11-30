@@ -43,8 +43,9 @@
 #define LED1_TOGGLE() 	LED_TOGGLE(LATC, 9)
 
 /** Motor systems */
-#define BRAKE_ON()	 do { ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_TORQUE_ENABLE, 0x00); _LATA7 = 0;} while(0);
-#define BRAKE_OFF()	 do { ax12_user_write_int(&gen.ax12, AX12_BROADCAST_ID, AA_TORQUE_ENABLE, 0x01); _LATA7 = 1;} while(0);
+#define BRAKE_ON()	 do { pwm_mc_set(&gen.pwm_mc_mod2_ch1, 0); _LATC6  = 0; _LATA7 = 0;} while(0);
+#define BRAKE_OFF()	 do { _LATA7 = 1;} while(0);
+
 
 #define ENC_Z_IMP_REV 3600
 #define GEAR_Z_MM_REV 1.0
@@ -57,7 +58,7 @@
 #define ENCODER_Y    ((void *)2)
 
 #define DAC_MC_Z     ((void *)&gen.dac_mc_left)
-#define PWM_MC_Y		((void *)&gem.pwm_mc_mod1_ch2)
+#define PWM_MC_Y		((void *)&gen.pwm_mc_mod2_ch1)
 
 /** ERROR NUMS */
 #define E_USER_APP         194
@@ -90,7 +91,8 @@ struct genboard{
 
 	/* brushless motors */	struct dac_mc dac_mc_left;
 
-	/* dc motors */	struct pwm_mc pwm_mc_mod1_ch2;
+	/* dc motors */	struct pwm_mc pwm_mc_mod2_ch1;
+
 	/* log */
 	uint8_t logs[NB_LOGS+1];
 	uint8_t log_level;

@@ -73,8 +73,8 @@ static uint16_t sensor_filtered = 0;
 
 /* sensor mapping : 
  * 0:  	S_Y_CALIB 	RC1
- * 1:  	S_Y_FC_L 	RC6
- * 2:  	S_Y_FC_R 	RC7
+ * 1:  	S_Y_FC_L 	RB12
+ * 2:  	S_Y_FC_R 	RB13
  * 3:  	S_Z_CALIB 	RB11
  * 4:  	S_Z_FC_UP 	RB10
  * 5:  	S_Z_FC_DOWN	RB2
@@ -105,11 +105,12 @@ static uint16_t sensor_read(void)
 	uint16_t tmp = 0;
 
 	tmp |= (uint16_t)((PORTC & (_BV(1)) >> 1) << 0);
-	tmp |= (uint16_t)((PORTC & (_BV(6))) >> 6) << 1);
-	tmp |= (uint16_t)((PORTC & (_BV(7))) >> 7) << 2);
-	tmp |= (uint16_t)((PORTB & (_BV(11))) >> 11) << 3);
-	tmp |= (uint16_t)((PORTB & (_BV(10))) >> 10) << 4);
-	tmp |= (uint16_t)((PORTB & (_BV(2))) >> 2) << 5);
+	tmp |= (uint16_t)((PORTB & (_BV(12)) >> 12) << 1);
+	tmp |= (uint16_t)((PORTB & (_BV(13)) >> 13) << 2);
+	tmp |= (uint16_t)((PORTB & (_BV(11)) >> 11) << 3);
+	tmp |= (uint16_t)((PORTB & (_BV(10)) >> 10) << 4);
+	tmp |= (uint16_t)((PORTB & (_BV(2)) >> 2) << 5);
+
 	/* 6 to 7 reserved */	
 	/* add reserved sensors here */
 	

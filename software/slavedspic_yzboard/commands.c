@@ -30,6 +30,8 @@
 /* commands_gen.c */
 extern parse_pgm_inst_t cmd_reset;
 extern parse_pgm_inst_t cmd_encoders;
+extern parse_pgm_inst_t cmd_pwm_mc;
+extern parse_pgm_inst_t cmd_dac_mc;
 extern parse_pgm_inst_t cmd_sensor;
 extern parse_pgm_inst_t cmd_log;
 extern parse_pgm_inst_t cmd_log_show;
@@ -66,6 +68,8 @@ parse_pgm_ctx_t main_ctx[] = {
 	/* commands_gen.c */
 	(parse_pgm_inst_t *)&cmd_reset,
 	(parse_pgm_inst_t *)&cmd_encoders,
+	(parse_pgm_inst_t *)&cmd_pwm_mc,
+	(parse_pgm_inst_t *)&cmd_dac_mc,
 	(parse_pgm_inst_t *)&cmd_sensor,
 	(parse_pgm_inst_t *)&cmd_log,
 	(parse_pgm_inst_t *)&cmd_log_show,
