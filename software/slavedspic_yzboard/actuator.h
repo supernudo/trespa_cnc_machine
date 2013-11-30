@@ -19,5 +19,11 @@
  *
  */
 
+#ifndef __ACTUATOR_H__
+#define __ACTUATOR_H__
+
 void dac_set_and_save(void *dac, int32_t val);
 void pwm_mc_set_and_save(void *pwm, int32_t val);
+
+#endif
+

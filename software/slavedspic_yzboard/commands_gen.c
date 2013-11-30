@@ -129,6 +129,91 @@ parse_pgm_inst_t cmd_encoders = {
 };
 
 /**********************************************************/
+/* pwm_mc tests */
+
+/* this structure is filled when cmd_pwm is parsed successfully */
+struct cmd_pwm_mc_result {
+	fixed_string_t arg0;
+//	fixed_string_t arg1;
+	int16_t arg2;
+};
+
+/* function called when cmd_pwm is parsed successfully */
+static void cmd_pwm_mc_parsed(void * parsed_result, __attribute__((unused)) void *data)
+{
+	struct pwm_mc * pwm_mc_ptr = NULL;
+	struct cmd_pwm_mc_result * res = parsed_result;
+
+	//if (!strcmp_P(res->arg1, PSTR("mod1_ch2")))
+	//	pwm_mc_ptr = &gen.pwm_mc_mod1_ch2;
+	//else if (!strcmp_P(res->arg1, PSTR("mod2_ch1")))
+		pwm_mc_ptr = &gen.pwm_mc_mod2_ch1;
+
+	if (pwm_mc_ptr)
+		pwm_mc_set(pwm_mc_ptr, res->arg2);
+
+	printf_P("PWM Module 2 - CH1 set to %d of [%ld; %ld]\r\n", res->arg2, pwm_mc_ptr->pwm_val_min ,pwm_mc_ptr->pwm_val_max);
+}
+
+prog_char str_pwm_mc_arg0[] = "pwm_mc";
+parse_pgm_token_string_t cmd_pwm_mc_arg0 = TOKEN_STRING_INITIALIZER(struct cmd_pwm_mc_result, arg0, str_pwm_mc_arg0);
+//prog_char str_pwm_mc_arg1[] = "mod1_ch2#mod2_ch1#show_max";
+//parse_pgm_token_string_t cmd_pwm_mc_arg1 = TOKEN_STRING_INITIALIZER(struct cmd_pwm_mc_result, arg1, str_pwm_mc_arg1);
+parse_pgm_token_num_t cmd_pwm_mc_arg2 = TOKEN_NUM_INITIALIZER(struct cmd_pwm_mc_result, arg2, INT16);
+
+prog_char help_pwm_mc[] = "Set pwm_mc values [-3333 ; 3333]";
+parse_pgm_inst_t cmd_pwm_mc = {
+	.f = cmd_pwm_mc_parsed,  /* function to call */
+	.data = NULL,      /* 2nd arg of func */
+	.help_str = help_pwm_mc,
+	.tokens = {        /* token list, NULL terminated */
+		(prog_void *)&cmd_pwm_mc_arg0, 
+//		(prog_void *)&cmd_pwm_mc_arg1, 
+		(prog_void *)&cmd_pwm_mc_arg2, 
+		NULL,
+	},
+};
+
+/**********************************************************/
+/* DAC MC tests */
+
+/* this structure is filled when cmd_dac_mc is parsed successfully */
+struct cmd_dac_mc_result {
+	fixed_string_t arg0;
+	int32_t arg2;
+};
+
+/* function called when cmd_dac_mc is parsed successfully */
+static void cmd_dac_mc_parsed(void * parsed_result, __attribute__((unused)) void *data)
+{
+	void * dac_mc_ptr = NULL;
+	struct cmd_dac_mc_result * res = parsed_result;
+	
+	dac_mc_ptr = &gen.dac_mc_left;
+	
+	if (dac_mc_ptr)
+		dac_mc_set(dac_mc_ptr, res->arg2);
+
+	printf_P(PSTR("done\r\n"));
+}
+
+prog_char str_dac_mc_arg0[] = "dac_mc";
+parse_pgm_token_string_t cmd_dac_mc_arg0 = TOKEN_STRING_INITIALIZER(struct cmd_dac_mc_result, arg0, str_dac_mc_arg0);
+parse_pgm_token_num_t cmd_dac_mc_arg2 = TOKEN_NUM_INITIALIZER(struct cmd_dac_mc_result, arg2, INT32);
+
+prog_char help_dac_mc[] = "Set dac_mc values [-65535 ; 65535]";
+parse_pgm_inst_t cmd_dac_mc = {
+	.f = cmd_dac_mc_parsed,  /* function to call */
+	.data = NULL,      /* 2nd arg of func */
+	.help_str = help_dac_mc,
+	.tokens = {        /* token list, NULL terminated */
+		(prog_void *)&cmd_dac_mc_arg0, 
+		(prog_void *)&cmd_dac_mc_arg2, 
+		NULL,
+	},
+};
+
+/**********************************************************/
 /* Scheduler show */
 
 /* this structure is filled when cmd_scheduler is parsed successfully */

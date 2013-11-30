@@ -144,8 +144,8 @@ void io_pins_init(void)
 	_TRISC2 	= 1;		// SENSOR7 (BROKEN PIN)
 
 	_TRISC1  = 1;     // SLAVE_SERVO_PWM_1 (CALIB_Y)
-	_TRISC6  = 1;		// SLAVE_MOT_1_INA (FC_Y_LEFT)
-	_TRISC7  = 1;		// SLAVE_MOT_1_INB (FC_Y_RIGHT)
+	_TRISB12  = 1;		// SLAVE_MOT_1_INA (FC_Y_LEFT)
+	_TRISB13  = 1;		// SLAVE_MOT_1_INB (FC_Y_RIGHT)
 
 
 	/* brushless motor (MOTOR_Z) */
@@ -185,10 +185,10 @@ void io_pins_init(void)
 #endif
 
 	/* DC motors (MOTOR_Y) */
-	_TRISB12 = 0;	// SLAVE_MOT_2_INA
-	_TRISB13 = 0;	// SLAVE_MOT_2_INB
-	_LATB12  = 0;	// initialy breaked
-	_LATB13  = 0;
+	_TRISC6 = 0;	// SLAVE_MOT_2_INA
+	_TRISC7 = 0;	// SLAVE_MOT_2_INB
+	_LATC6  = 0;	// initialy breaked
+	_LATC7  = 0;
 
 }
 
@@ -235,12 +235,12 @@ int main(void)
 	encoders_dspic_init();
 
 	/* PWM_MC */
-	pwm_mc_channel_init(&gen.pwm_mc_mod1_ch2,
+	pwm_mc_channel_init(&gen.pwm_mc_mod2_ch1,
 	                    PWM_MC_MODE_BIPOLAR, 
-	                    1, 2, NULL, 0, NULL, 0);
-	pwm_mc_init(&gen.pwm_mc_mod1_ch2, 19000, 
-							CH2_COMP&PEN2H&PEN2L);
-	pwm_mc_set(&gen.pwm_mc_mod1_ch2, 0);
+	                    2, 1, NULL, 0, NULL, 0);
+	pwm_mc_init(&gen.pwm_mc_mod2_ch1, 19000, 
+							CH1_COMP&PEN1H&PEN1L);
+	pwm_mc_set(&gen.pwm_mc_mod2_ch1, 0);
 
 	/* DO FLAGS */
 	/* note: cs is enabled after calibration */
