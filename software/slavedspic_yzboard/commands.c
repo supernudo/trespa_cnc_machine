@@ -56,7 +56,7 @@ extern parse_pgm_inst_t cmd_blocking_i_show;
 /* commands_slavedspic.c */
 extern parse_pgm_inst_t cmd_event;
 #ifdef TODO
-extern parse_pgm_inst_t cmd_alpha_mode1;
+extern parse_pgm_inst_t cmd__mode1;
 extern parse_pgm_inst_t cmd_alpha_mode2;
 extern parse_pgm_inst_t cmd_beta_mode1;
 extern parse_pgm_inst_t cmd_beta_mode2;

@@ -538,4 +538,344 @@ parse_pgm_inst_t cmd_beta_mode2 = {
 	},
 };
 
+
+
 #endif
+
+
+/* Application functions */
+
+void hard_stop(struct cs_block *csb, void * enc_id)
+{
+	cs_set_consign(&csb->cs, encoders_dspic_get_value(enc_id));
+
+	csb->qr.previous_var = 0;
+	csb->qr.previous_out = encoders_dspic_get_value(enc_id);
+}
+
+int8_t wait_pos_end(struct cs_block *csb)
+{
+	uint8_t ret=0;
+
+	while(ret == 0){
+
+		/* test traj end */
+		if(cs_get_consign(&csb->cs) == cs_get_filtered_consign(&csb->cs)){
+			ret = 1;
+			NOTICE(E_USER_APP, "Positioning ends OK");
+			return 1;
+		}
+
+		/* test blocking */
+		ret = bd_get(&csb->bd);
+		if(ret){
+
+			hard_stop(csb, X_ENCODER);
+			pid_reset(&csb->pid);
+			bd_reset(&csb->bd);
+
+			ERROR(E_USER_APP, "Positioning ends BLOCKING!!");
+			return -1;
+		}
+	}
+}
+
+#define AUTOPOS_SPEED	1
+#define AUTOPOS_ACCEL	100
+//#define MEASURE_X_RANGE
+void axis_x_autopos(struct cs_block *csb, struct dac_mc *dac_mc, void * enc_id, uint8_t reverse)
+{
+#ifdef MEASURE_X_RANGE
+	int32_t val;
+#endif
+	int8_t ret;
+
+	/* disable position bd */
+	maindspic.position_bd = 0;
+
+	/* set PID constants */
+	pid_set_gains(&csb->pid, 800, 0, 5000);
+
+	/* goto out zero FC range */
+	if(sensor_get(S_X_MOT_L_FC)){
+		maindspic.flags |= DO_CS;
+		if(reverse)
+			cs_set_consign(&csb->cs, (int32_t)(-200*DIST_IMP_MM));
+		else
+			cs_set_consign(&csb->cs, (int32_t)((200*DIST_IMP_MM)));
+
+		while(sensor_get(S_X_MOT_L_FC));
+	}
+
+	/* goto zero with cs */
+	maindspic.flags |= DO_CS;
+	if(reverse)
+		cs_set_consign(&csb->cs, (int32_t)(5000*DIST_IMP_MM));
+	else
+		cs_set_consign(&csb->cs, (int32_t)(-(5000*DIST_IMP_MM)));
+	
+	DEBUG(E_USER_APP, "Goto zero, reverse = %d", reverse);	
+
+	/* wait FC */
+	while(!sensor_get(S_X_MOT_L_FC));
+	DEBUG(E_USER_APP, "zero FC reached");			
+
+	/* set low speed, and hi acceleration for fast response */
+	quadramp_set_1st_order_vars(&csb->qr, AUTOPOS_SPEED, AUTOPOS_SPEED);
+	quadramp_set_2nd_order_vars(&csb->qr, AUTOPOS_ACCEL, AUTOPOS_ACCEL);
+	DEBUG(E_USER_APP, "Down speed, new speed is %d", (int16_t)AUTOPOS_SPEED);
+
+	/* wait end blocking */
+	while(!bd_get(&csb->bd));	
+	DEBUG(E_USER_APP, "End blocking");			
+
+	/* reset encoder */
+	encoders_dspic_set_value(enc_id, 0);
+	hard_stop(csb, X_ENCODER);
+	pid_reset(&csb->pid);
+	bd_reset(&csb->bd);
+
+	DEBUG(E_USER_APP, "Encoder reset to zero");	
+
+	/* restore normal speed and acceleration */
+	quadramp_set_1st_order_vars(&csb->qr, NORMAL_SPEED, NORMAL_SPEED);
+	quadramp_set_2nd_order_vars(&csb->qr, 1, 1);
+	DEBUG(E_USER_APP, "New speed is %d", (int16_t)NORMAL_SPEED);
+
+#ifdef MEASURE_X_RANGE
+	/* goto opposite with cs */
+	maindspic.flags |= DO_CS;
+	if(reverse)
+		cs_set_consign(&csb->cs, (int32_t)(-(5000*DIST_IMP_MM)));
+	else
+		cs_set_consign(&csb->cs, (int32_t)(5000*DIST_IMP_MM));
+
+	DEBUG(E_USER_APP, "Goto opposite, reverse = %d", reverse);	
+	
+	/* wait FC */
+	while(!sensor_get(S_X_MOT_R_FC));
+	DEBUG(E_USER_APP, "opposite FC reached");			
+
+	/* set low speed */
+	quadramp_set_1st_order_vars(&csb->qr, AUTOPOS_SPEED, AUTOPOS_SPEED);
+	quadramp_set_2nd_order_vars(&csb->qr, AUTOPOS_ACCEL, AUTOPOS_ACCEL);
+	DEBUG(E_USER_APP, "Down speed, new speed is %d", (int16_t)AUTOPOS_SPEED);
+
+	/* wait end blocking */
+	while(!bd_get(&csb->bd));	
+	DEBUG(E_USER_APP, "End blocking");			
+
+	/* get encoder value and stop */
+	val = encoders_dspic_get_value(enc_id);
+	hard_stop(csb, X_ENCODER);
+	pid_reset(&csb->pid);
+	bd_reset(&csb->bd);
+
+	/* calculate X range */
+	maindspic.offset_x_mm = 480;
+	maindspic.pos_x_max_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + val - (int32_t)(5*DIST_IMP_MM);
+	maindspic.pos_x_min_imp = (int32_t)(5*DIST_IMP_MM);
+	printf("Axis X range is [%ld %ld] mm\n\r",
+	 (int32_t)(maindspic.pos_x_min_imp/DIST_IMP_MM),
+	 (int32_t)(maindspic.pos_x_max_imp/DIST_IMP_MM));
+	DEBUG(E_USER_APP, "Encoder get %ld impulses", (int32_t)val);	
+#else
+	/* calculate X range */
+	maindspic.offset_x_mm = 480;
+	maindspic.pos_x_max_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + 54400 - (int32_t)(5*DIST_IMP_MM);
+	maindspic.pos_x_min_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + (5*DIST_IMP_MM);
+	printf("Axis X range is [%ld %ld] mm\n\r",
+	 (int32_t)(maindspic.pos_x_min_imp/DIST_IMP_MM),
+	 (int32_t)(maindspic.pos_x_max_imp/DIST_IMP_MM));
+#endif
+
+
+	/* restore normal speed, acceleration and PID */
+	quadramp_set_1st_order_vars(&csb->qr, NORMAL_SPEED, NORMAL_SPEED);
+	quadramp_set_2nd_order_vars(&csb->qr, 1, 1);
+	pid_set_gains(&csb->pid, P_CONST, I_CONST, D_CONST);
+	DEBUG(E_USER_APP, "New speed is %d", (int16_t)NORMAL_SPEED);
+
+	/* disable position bd */
+	maindspic.position_bd = 1;
+
+	/* goto new zero with cs */
+	cs_set_consign(&csb->cs, (int32_t)(10*DIST_IMP_MM));
+	maindspic.flags |= DO_CS;
+	DEBUG(E_USER_APP, "Goto near zero");	
+
+	/* wait trajectory end */
+	ret = wait_pos_end(csb);
+
+	/* set calibrate flag */
+	if(ret == 1){
+		maindspic.calib_x = 1;
+	}
+
+	DEBUG(E_USER_APP, "Calibration ends");	
+}
+
+void axis_x_set(struct cs_block *csb, int32_t dist_mm)
+{
+	int32_t val_imp;
+
+	/* check if axis is calibrated */	
+	if(!maindspic.calib_x){
+		printf("Axis is not calibrated yet\n\r");
+		return;	
+	}		
+
+	/* value in pulses */
+	val_imp = (int32_t)(dist_mm*DIST_IMP_MM);
+
+	/* check range */
+	if((val_imp < maindspic.pos_x_min_imp) || (val_imp > maindspic.pos_x_max_imp)){
+		printf("Consign out of range\n\r");
+		return;	
+	}
+
+	/* set consign */
+	cs_set_consign(&csb->cs, (int32_t)((dist_mm-maindspic.offset_x_mm)*DIST_IMP_MM));
+	DEBUG(E_USER_APP, "Set angle consign to %ld deg (%ld imp)",
+		dist_mm, (int32_t)(dist_mm*DIST_IMP_MM));
+
+	/* wait trajectory end */
+	wait_pos_end(csb);
+}
+
+double axis_x_get(void * enc_id)
+{
+	/* check if axis is calibrated */
+	if(!maindspic.){
+		printf("Axis is not calibrated yet\n\r");
+		return 0.0;	
+	}		
+
+	return ((double)(maindspic.offset_x_mm + (encoders_dspic_get_value(enc_id)/DIST_IMP_MM)));
+}
+
+
+/**********************************************************/
+/* Axis X mode1 */
+
+/* this structure is filled when cmd_axis_x_mode1 is parsed successfully */
+struct cmd_axis_x_mode1_result {
+	fixed_string_t arg0;
+	fixed_string_t arg1;
+};
+
+/* function called when cmd_axis_x_mode1 is parsed successfully */
+static void cmd_axis_x_mode1_parsed(void *parsed_result, void *data)
+{
+	struct cmd_axis_x_mode1_result *res = parsed_result;
+	double ret;
+
+	if (!strcmp_P(res->arg1, "autopos")) {
+		axis_x_autopos(&maindspic.axis_x, X_DAC, X_ENCODER, 0);
+	}
+	else if (!strcmp_P(res->arg1, "get")) {
+		ret = axis_x_get(X_ENCODER);
+		printf("axis_x pos = %.4f mm\n\r", ret);
+	}
+
+	printf("Done\n\r");
+}
+
+prog_char str_axis_x_mode1_arg0[] = "axis_x";
+parse_pgm_token_string_t cmd_axis_x_mode1_arg0 = TOKEN_STRING_INITIALIZER(struct cmd_axis_x_mode1_result, arg0, str_axis_x_mode1_arg0);
+prog_char str_axis_x_mode1_arg1[] = "autopos#get";
+parse_pgm_token_string_t cmd_axis_x_mode1_arg1 = TOKEN_STRING_INITIALIZER(struct cmd_axis_x_mode1_result, arg1, str_axis_x_mode1_arg1);
+
+prog_char help_axis_x_mode1[] = "Axis X positioning commands (mode1)";
+parse_pgm_inst_t cmd_axis_x_mode1 = {
+	.f = cmd_axis_x_mode1_parsed,  /* function to call */
+	.data = NULL,      /* 2nd arg of func */
+	.help_str = help_axis_x_mode1,
+	.tokens = {        /* token list, NULL terminated */
+		(prog_void *)&cmd_axis_x_mode1_arg0, 
+		(prog_void *)&cmd_axis_x_mode1_arg1, 
+		NULL,
+	},
+};
+
+/**********************************************************/
+/* axis_x mode2 */
+
+/* this structure is filled when cmd_axis_x_mode2 is parsed successfully */
+struct cmd_axis_x_mode2_result {
+	fixed_string_t arg0;
+	fixed_string_t arg1;
+	int16_t arg3;
+};
+
+/* function called when cmd_axis_x_mode2 is parsed successfully */
+static void cmd_axis_x_mode2_parsed(void *parsed_result, void *show)
+{
+	struct cmd_axis_x_mode2_result *res = parsed_result;
+
+	if(!show){
+		printf("Axis X offset = %ld mm\n\r", maindspic.offset_x_mm);
+		printf("Axis X range is [%ld %ld] mm\n\r",
+		 (int32_t)(maindspic.pos_x_min_imp/DIST_IMP_MM),
+		 (int32_t)(maindspic.pos_x_max_imp/DIST_IMP_MM));
+		goto end;
+	}
+	
+	if (!strcmp_P(res->arg1, "set")) {
+		axis_x_set(&maindspic.axis_x, res->arg3);
+	}
+	else if (!strcmp_P(res->arg1, "offset")) {
+		maindspic.offset_x_mm = res->arg3;
+		maindspic.pos_x_min_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + (5*DIST_IMP_MM);
+		maindspic.pos_x_max_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + 54400 - (int32_t)(5*DIST_IMP_MM);
+
+		printf("Axis X range is [%ld %ld] mm\n\r",
+		 (int32_t)(maindspic.pos_x_min_imp/DIST_IMP_MM),
+		 (int32_t)(maindspic.pos_x_max_imp/DIST_IMP_MM));
+	}
+
+ end:
+	printf("Done\n\r");
+}
+
+prog_char str_axis_x_mode2_arg0[] = "axis_z#axis_y";
+parse_pgm_token_string_t cmd_axis_x_mode2_arg0 = TOKEN_STRING_INITIALIZER(struct cmd_axis_x_mode2_result, arg0, str_axis_x_mode2_arg0);
+prog_char str_axis_x_mode2_arg1[] = "set#offset";
+parse_pgm_token_string_t cmd_axis_x_mode2_arg1 = TOKEN_STRING_INITIALIZER(struct cmd_axis_x_mode2_result, arg1, str_axis_x_mode2_arg1);
+parse_pgm_token_num_t cmd_axis_x_mode2_arg3 = TOKEN_NUM_INITIALIZER(struct cmd_axis_x_mode2_result, arg3, INT16);
+
+prog_char help_axis_x_mode2[] = "Axis positioning commands (mode2)";
+parse_pgm_inst_t cmd_axis_x_mode2 = {
+	.f = cmd_axis_x_mode2_parsed,  /* function to call */
+	.data = (void *)1,      /* 2nd arg of func */
+	.help_str = help_axis_x_mode2,
+	.tokens = {        /* token list, NULL terminated */
+		(prog_void *)&cmd_axis_x_mode2_arg0, 
+		(prog_void *)&cmd_axis_x_mode2_arg1, 
+		(prog_void *)&cmd_axis_x_mode2_arg3,
+		NULL,
+	},
+};
+
+/* show */
+
+/* this structure is filled when cmd_axis_x_mode2_show is parsed successfully */
+struct cmd_axis_x_mode2_show_result {
+	fixed_string_t show;
+};
+
+prog_char str_axis_x_mode2_show_arg0[] = "show";
+parse_pgm_token_string_t cmd_axis_x_mode2_show_arg3 = TOKEN_STRING_INITIALIZER(struct cmd_axis_x_mode2_show_result, show, str_axis_x_mode2_show_arg0);
+
+prog_char help_axis_x_mode2_show[] = "Show Axis X offset and range";
+parse_pgm_inst_t cmd_axis_x_mode2_show = {
+	.f = cmd_axis_x_mode2_parsed,  /* function to call */
+	.data = NULL,      /* 2nd arg of func */
+	.help_str = help_axis_x_mode2_show,
+	.tokens = {        /* token list, NULL terminated */
+		(prog_void *)&cmd_axis_x_mode2_arg0, 
+		(prog_void *)&cmd_axis_x_mode2_arg1, 
+		(prog_void *)&cmd_axis_x_mode2_show_arg3,
+		NULL,
+	},
+};
