@@ -72,10 +72,10 @@ void do_cs(void *dummy)
 	}
 
 	/* brakes */
-//	if (slavedspic.flags & DO_POWER)
-//		BRAKE_OFF();
-//	else
-//		BRAKE_ON();
+	if (slavedspic.flags & DO_POWER)
+		BRAKE_OFF();
+	else
+		BRAKE_ON();
 	
 }
 

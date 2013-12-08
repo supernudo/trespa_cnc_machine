@@ -27,8 +27,8 @@
 
 /* synchronize with sensor.c */
 #define S_Y_CALIB 	0
-#define S_Y_FC_L	   1
-#define S_Y_FC_R   	2
+#define S_Y_FC_R	   1
+#define S_Y_FC_L   	2
 #define S_Z_CALIB   	3
 #define S_Z_FC_UP   	4
 #define S_Z_FC_DOWN	5

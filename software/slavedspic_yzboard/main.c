@@ -144,9 +144,9 @@ void io_pins_init(void)
 	_TRISC2 	= 1;		// SENSOR7 (BROKEN PIN)
 
 	_TRISC1  = 1;     // SLAVE_SERVO_PWM_1 (CALIB_Y)
-	_TRISB12  = 1;		// SLAVE_MOT_1_INA (FC_Y_LEFT)
-	_TRISB13  = 1;		// SLAVE_MOT_1_INB (FC_Y_RIGHT)
-
+	_TRISB12  = 1;		// SLAVE_MOT_1_INA (FC_Y_RIGHT)
+	_TRISB13  = 1;		// SLAVE_MOT_1_INB (FC_Y_LEFT)
+	/* ee-sx671a sensors (inputs capture) */	_IC1R		= 11;	// IC1 <- CALIB_Z (RP11)	_IC2R		= 17;	// IC2 <- CALIB_Y (RP17)
 
 	/* brushless motor (MOTOR_Z) */
 	_TRISA10 = 0; 	// SLAVE_MOT_BRUSH_REV
@@ -192,8 +192,6 @@ void io_pins_init(void)
 
 }
 
-void angle_autopos(struct cs_block *csb, uint16_t ax12_id, void * enc_id, uint8_t reverse);
-
 int main(void)
 {
 	/* disable interrupts */
@@ -228,7 +226,6 @@ int main(void)
 							  DAC_MC_MODE_SIGNED | DAC_MC_MODE_SIGN_INVERTED, &LATA, 10, NULL, 0);
 	dac_mc_set(&gen.dac_mc_left, 0);
 
-	
 
 
 	/* ENCODERS */
@@ -241,6 +238,7 @@ int main(void)
 	pwm_mc_init(&gen.pwm_mc_mod2_ch1, 19000, 
 							CH1_COMP&PEN1H&PEN1L);
 	pwm_mc_set(&gen.pwm_mc_mod2_ch1, 0);
+
 
 	/* DO FLAGS */
 	/* note: cs is enabled after calibration */
@@ -264,7 +262,6 @@ int main(void)
 
 	scheduler_add_periodical_event_priority(do_cs, NULL, 
 						50000L / SCHEDULER_UNIT, CS_PRIO);
-
 
 	/* all cs management */
 	dspic_cs_init();
