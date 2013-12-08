@@ -24,7 +24,6 @@
 
 #include <aversive.h>#include <aversive/error.h>
 #include <time.h>#include <rdline.h>
-//#include <ax12.h>
 #include <encoders_dspic.h>#include <dac_mc.h>#include <pwm_mc.h>
 
 #include <pid.h>#include <quadramp.h>#include <control_system_manager.h>#include <blocking_detection_manager.h>
@@ -43,8 +42,8 @@
 #define LED1_TOGGLE() 	LED_TOGGLE(LATC, 9)
 
 /** Motor systems */
-#define BRAKE_ON()	 do { pwm_mc_set(&gen.pwm_mc_mod2_ch1, 0); _LATC6  = 0; _LATA7 = 0;} while(0);
-#define BRAKE_OFF()	 do { _LATA7 = 1;} while(0);
+#define BRAKE_ON()	 do { pwm_mc_set(&gen.pwm_mc_mod2_ch1, 0); _LATC6  = 0; _LATC7 = 0; _LATA7 = 0;} while(0)
+#define BRAKE_OFF()	 do { _LATA7 = 1;} while(0)
 
 
 #define ENC_Z_IMP_REV 3600

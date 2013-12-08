@@ -56,15 +56,14 @@ struct sensor_filter {
 };
 
 static struct sensor_filter sensor_filter[SENSOR_MAX] = {
-	[S_Y_CALIB] 	= { 1, 0, 0, 1, 0, 1 }, 	/* 0 */
-	[S_Y_FC_L] 		= { 1, 0, 0, 1, 0, 1 }, 	/* 1 */
-	[S_Y_FC_R] 		= { 1, 0, 0, 1, 0, 0 }, 	/* 2 */
+	[S_Y_CALIB] 	= { 1, 0, 0, 1, 0, 0 }, 	/* 0 */
+	[S_Y_FC_R] 		= { 1, 0, 0, 1, 0, 0 }, 	/* 1 */
+	[S_Y_FC_L] 		= { 1, 0, 0, 1, 0, 0 }, 	/* 2 */
 	[S_Z_CALIB] 	= { 1, 0, 0, 1, 0, 0 }, 	/* 3 */
-	[S_Z_FC_UP] 	= { 0, 0, 0, 1, 0, 0 }, 	/* 4 */
-	[S_Z_FC_DOWN] 	= { 0, 0, 0, 1, 0, 0 }, 	/* 5 */
-	[S_RESERVED1] 	= { 0, 0, 0, 1, 0, 0 }, 	/* 6 */
-	[S_RESERVED2] 	= { 0, 0, 0, 1, 0, 0 }, 	/* 7 */
-
+	[S_Z_FC_UP] 	= { 1, 0, 0, 1, 0, 0 }, 	/* 4 */
+	[S_Z_FC_DOWN] 	= { 1, 0, 0, 1, 0, 0 }, 	/* 5 */
+	[S_RESERVED1] 	= { 1, 0, 0, 1, 0, 0 }, 	/* 6 */
+	[S_RESERVED2] 	= { 1, 0, 0, 1, 0, 0 }, 	/* 7 */
 };
 
 
@@ -103,13 +102,12 @@ uint8_t sensor_get(uint8_t i)
 static uint16_t sensor_read(void)
 {
 	uint16_t tmp = 0;
-
-	tmp |= (uint16_t)((PORTC & (_BV(1)) >> 1) << 0);
-	tmp |= (uint16_t)((PORTB & (_BV(12)) >> 12) << 1);
-	tmp |= (uint16_t)((PORTB & (_BV(13)) >> 13) << 2);
-	tmp |= (uint16_t)((PORTB & (_BV(11)) >> 11) << 3);
-	tmp |= (uint16_t)((PORTB & (_BV(10)) >> 10) << 4);
-	tmp |= (uint16_t)((PORTB & (_BV(2)) >> 2) << 5);
+	tmp |= (uint16_t)((PORTC & (_BV(1)))  >> 1)  << 0;
+	tmp |= (uint16_t)((PORTB & (_BV(12))) >> 12) << 1;
+	tmp |= (uint16_t)((PORTB & (_BV(13))) >> 13) << 2;
+	tmp |= (uint16_t)((PORTB & (_BV(11))) >> 11) << 3;
+	tmp |= (uint16_t)((PORTB & (_BV(10))) >> 10) << 4;
+	tmp |= (uint16_t)((PORTB & (_BV(2)))  >> 2)  << 5;
 
 	/* 6 to 7 reserved */	
 	/* add reserved sensors here */
@@ -166,8 +164,66 @@ void do_sensors(void *dummy)
 	do_boolean_sensors(NULL);
 }
 
-void sensor_init(void)
+void sensor_axis_z_enable_calib(void)
 {
+	uint8_t flags;
 
+	IRQ_LOCK(flags);
+	IFS0bits.IC1IF = 0; 	// clear IC1 Interrupt Status Flag	IEC0bits.IC1IE = 1; 	// enable IC1 interrupt
+	IRQ_UNLOCK(flags);
 }
 
+void sensor_axis_z_disable_calib(void)
+{
+	uint8_t flags;
+
+	IRQ_LOCK(flags);
+	IFS0bits.IC1IF = 0; 	// clear IC1 Interrupt Status Flag	IEC0bits.IC1IE = 0; 	// disable IC1 interrupt
+	IRQ_UNLOCK(flags);
+}
+
+void sensor_axis_y_enable_calib(void)
+{
+	uint8_t flags;
+
+	IRQ_LOCK(flags);
+	IFS0bits.IC2IF = 0; 	// clear IC1 Interrupt Status Flag	IEC0bits.IC2IE = 1; 	// enable IC1 interrupt
+	IRQ_UNLOCK(flags);
+}
+
+void sensor_axis_y_disable_calib(void)
+{
+	uint8_t flags;
+
+	IRQ_LOCK(flags);
+	IFS0bits.IC2IF = 0; 	// clear IC1 Interrupt Status Flag	IEC0bits.IC2IE = 0; 	// disable IC1 interrupt
+	IRQ_UNLOCK(flags);
+}
+
+void sensor_init(void)
+{
+	/* config inputs interrups for yz axes calibration */
+
+	/* initialize input capture (IC) 1 and 2 for calib sensors events */
+
+	/* 
+		01  - falling and rising edge
+		10  - falling edge
+		11  - rising edge		
+	*/
+	IC1CONbits.ICM =0b000;		// disable Input Capture module	IC1CONbits.ICTMR = 1; 		// select Timer2 as the IC time base	IC1CONbits.ICI = 0b00; 		// interrupt on every capture event	IC1CONbits.ICM = 0b011; 	// generate capture event on edge event 
+		
+	IC2CONbits.ICM =0b00; 		// disable Input Capture module	IC2CONbits.ICTMR = 1; 		// select Timer2 as the IC time base	IC2CONbits.ICI = 0b00; 		// interrupt on every capture event	IC2CONbits.ICM = 0b011; 	// generate capture event on edge event
+	/* setup interrupts priority level higher than scheduler! */	IPC0bits.IC1IP = 5;
+	IPC1bits.IC2IP = 5;
+
+	sensor_axis_z_disable_calib();
+	//sensor_axis_z_enable_calib();
+	sensor_axis_y_disable_calib();
+	//sensor_axis_y_enable_calib();
+}
+
+
+/* input interrupt connected to CALIB_Z */void __attribute__((__interrupt__, no_auto_psv)) _IC1Interrupt(void){	uint8_t flags;	_IC1IF=0;	IRQ_LOCK(flags);	encoders_dspic_set_value(ENCODER_Z, 0);	IRQ_UNLOCK(flags);}
+
+/* input compare 2 interrupt connected to CALIB_Y */void __attribute__((__interrupt__, no_auto_psv)) _IC2Interrupt(void){	uint8_t flags;	_IC2IF=0;	IRQ_LOCK(flags);	encoders_dspic_set_value(ENCODER_Y, 0);	IRQ_UNLOCK(flags);}

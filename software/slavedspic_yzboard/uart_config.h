@@ -54,7 +54,7 @@
 //#define UART0_USE_DOUBLE_SPEED 1
 
 #define UART0_RX_FIFO_SIZE 64
-#define UART0_TX_FIFO_SIZE 16
+#define UART0_TX_FIFO_SIZE 64
 
 #define UART0_NBITS 8
 //#define UART0_NBITS 9
@@ -69,7 +69,7 @@
 /*
  * UART1 definitions (dspic UART2) 
  */
-
+#if 0
 /* compile uart1 fonctions, undefine it to pass compilation */
 #define UART1_COMPILE  
 
@@ -105,4 +105,4 @@
 /* .... same for uart 1, 2, 3 ... */
 
 #endif
-
+#endif
