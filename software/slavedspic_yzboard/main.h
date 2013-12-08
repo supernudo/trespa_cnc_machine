@@ -46,11 +46,10 @@
 #define BRAKE_OFF()	 do { _LATA7 = 1;} while(0)
 
 
-#define ENC_Z_IMP_REV 3600
-#define GEAR_Z_MM_REV 1.0
-#define DIST_Z_IMP_MM ((ENC_Z_IMP_REV *4) / GEAR_Z_MM_REV)
+#define ENC_Z_IMP_MM  20
+#define DIST_Z_IMP_MM ((ENC_Z_IMP_MM *4))
 
-#define ENC_Y_IMP_MM  10
+#define ENC_Y_IMP_MM  20
 #define DIST_Y_IMP_MM ((ENC_Y_IMP_MM *4))
 
 #define ENCODER_Z		((void *)1)
@@ -126,12 +125,14 @@ struct slavedspic {
 	int32_t y_pos;
 	int32_t y_pos_max_imp;
 	int32_t y_pos_min_imp;
+	int32_t y_offset_mm;
 	int8_t  y_calib;
 	volatile int16_t y_pwm_val;
 
 	int32_t z_pos;
 	int32_t z_pos_max_imp;
 	int32_t z_pos_min_imp;
+	int32_t z_offset_mm;
 	int8_t  z_calib;
 	volatile int16_t z_dac_val;
 
