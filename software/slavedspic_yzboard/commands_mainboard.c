@@ -540,7 +540,7 @@ parse_pgm_inst_t cmd_beta_mode2 = {
 
 
 
-#endif
+
 
 
 /* Application functions */
@@ -879,3 +879,5 @@ parse_pgm_inst_t cmd_axis_x_mode2_show = {
 		NULL,
 	},
 };
+
+#endif

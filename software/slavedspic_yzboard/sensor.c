@@ -103,11 +103,11 @@ static uint16_t sensor_read(void)
 {
 	uint16_t tmp = 0;
 	tmp |= (uint16_t)((PORTC & (_BV(1)))  >> 1)  << 0;
-	tmp |= (uint16_t)((PORTB & (_BV(12))) >> 12) << 1;
-	tmp |= (uint16_t)((PORTB & (_BV(13))) >> 13) << 2;
+	tmp |= (uint16_t)((PORTB & (_BV(12))) >> 12) << 2;
+	tmp |= (uint16_t)((PORTB & (_BV(13))) >> 13) << 1;
 	tmp |= (uint16_t)((PORTB & (_BV(11))) >> 11) << 3;
-	tmp |= (uint16_t)((PORTB & (_BV(10))) >> 10) << 4;
-	tmp |= (uint16_t)((PORTB & (_BV(2)))  >> 2)  << 5;
+	tmp |= (uint16_t)((PORTB & (_BV(10))) >> 10) << 5;
+	tmp |= (uint16_t)((PORTB & (_BV(2)))  >> 2)  << 4;
 
 	/* 6 to 7 reserved */	
 	/* add reserved sensors here */
