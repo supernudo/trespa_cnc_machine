@@ -55,12 +55,8 @@ extern parse_pgm_inst_t cmd_blocking_i_show;
 
 /* commands_slavedspic.c */
 extern parse_pgm_inst_t cmd_event;
-#ifdef TODO
-extern parse_pgm_inst_t cmd__mode1;
-extern parse_pgm_inst_t cmd_alpha_mode2;
-extern parse_pgm_inst_t cmd_beta_mode1;
-extern parse_pgm_inst_t cmd_beta_mode2;
-#endif
+extern parse_pgm_inst_t cmd_axis_mode1;
+extern parse_pgm_inst_t cmd_axis_mode2;
 
 /* in progmem */
 parse_pgm_ctx_t main_ctx[] = {
@@ -92,11 +88,7 @@ parse_pgm_ctx_t main_ctx[] = {
 
 	/* commands_slavedspic.c */
 	(parse_pgm_inst_t *)&cmd_event,
-#ifdef TODO
-	(parse_pgm_inst_t *)&cmd_alpha_mode1,
-	(parse_pgm_inst_t *)&cmd_alpha_mode2,
-	(parse_pgm_inst_t *)&cmd_beta_mode1,
-	(parse_pgm_inst_t *)&cmd_beta_mode2,
-#endif
+	(parse_pgm_inst_t *)&cmd_axis_mode1,
+	(parse_pgm_inst_t *)&cmd_axis_mode2,
 	NULL,
 };
