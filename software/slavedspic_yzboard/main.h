@@ -46,11 +46,19 @@
 #define BRAKE_OFF()	 do { _LATA7 = 1;} while(0)
 
 
-#define ENC_Z_IMP_MM  20
-#define DIST_Z_IMP_MM ((ENC_Z_IMP_MM *4))
+#define ENC_IMP_MM  40
+#define DIST_IMP_MM ((ENC_IMP_MM *4))
 
-#define ENC_Y_IMP_MM  20
-#define DIST_Y_IMP_MM ((ENC_Y_IMP_MM *4))
+#define Y_POS_MAX_IMP 	0
+#define Y_POS_MIN_IMP	0
+#define Z_POS_MAX_IMP	0
+#define Z_POS_MIN_IMP	0
+
+#define Y_PWM_VALUE_MAX +2100
+#define Y_PWM_VALUE_MIN -2100
+#define Z_DAC_VALUE_MAX +65000
+#define Z_DAC_VALUE_MIN -65000
+
 
 #define ENCODER_Z		((void *)1)
 #define ENCODER_Y    ((void *)2)

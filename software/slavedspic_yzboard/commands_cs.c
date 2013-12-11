@@ -52,8 +52,8 @@ struct csb_list {
 	struct cs_block *csb;
 };
 
-prog_char csb_y_str[] = "alpha";
-prog_char csb_z_str[] = "beta";
+prog_char csb_y_str[] = "y";
+prog_char csb_z_str[] = "z";
 struct csb_list csb_list[] = {
 	{ .name = csb_y_str, .csb = &slavedspic.y },
 	{ .name = csb_z_str, .csb = &slavedspic.z },

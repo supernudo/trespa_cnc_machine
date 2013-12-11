@@ -143,10 +143,12 @@ void io_pins_init(void)
 	_TRISB4 	= 1;		// SENSOR6 (NEW AX12 UART)
 	_TRISC2 	= 1;		// SENSOR7 (BROKEN PIN)
 
-	_TRISC1  = 1;     // SLAVE_SERVO_PWM_1 (CALIB_Y)
+	_TRISC1  = 0;     // SLAVE_SERVO_PWM_1 (CALIB_Y, RP19)
+	_TRISC3  = 1;     // SLAVE_SERVO_PWM_1 (CALIB_Y)
 	_TRISB12  = 1;		// SLAVE_MOT_1_INA (FC_Y_RIGHT)
 	_TRISB13  = 1;		// SLAVE_MOT_1_INB (FC_Y_LEFT)
-	/* ee-sx671a sensors (inputs capture) */	_IC1R		= 11;	// IC1 <- CALIB_Z (RP11)	_IC2R		= 17;	// IC2 <- CALIB_Y (RP17)
+	/* ee-sx671a sensors (inputs capture) */	_IC1R		= 11;	// IC1 <- CALIB_Z (RP11)	//_IC2R		= 17;	// IC2 <- CALIB_Y (RP17)
+	_IC2R		= 19;	// IC2 <- CALIB_Y (RP17)
 
 	/* brushless motor (MOTOR_Z) */
 	_TRISA10 = 0; 	// SLAVE_MOT_BRUSH_REV
@@ -159,9 +161,9 @@ void io_pins_init(void)
 	_QEB1R 	= 20;	// QEB1 <- RP20(RC4) <- ENC_Z_CHB
 	_TRISC4  = 1;	
 	
-	_QEA2R 	= 16;	// QEA2 <- RP16(RC0) <- ENC_Y_CHA (SLAVE_SERVO_PWM_2)
+	_QEA2R 	= 3;	// QEA2 <- RP16(RC0) <- ENC_Y_CHA (SLAVE_SERVO_PWM_2)
 	_TRISC0  = 1;	
-	_QEB2R 	= 3;	// QEB1 <- RP4(RB3)  <- ENC_Y_CHB (SLAVE_SERVO_PWM_3)
+	_QEB2R 	= 16;	// QEB1 <- RP4(RB3)  <- ENC_Y_CHB (SLAVE_SERVO_PWM_3)
 	_TRISB3	= 1;
 	
 	

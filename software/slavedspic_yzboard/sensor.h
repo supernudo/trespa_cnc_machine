@@ -46,3 +46,8 @@ uint8_t sensor_get(uint8_t i);
 
 void sensor_init(void);
 
+void sensor_axis_z_enable_calib(void);
+void sensor_axis_z_disable_calib(void);
+void sensor_axis_y_enable_calib(void);
+void sensor_axis_y_disable_calib(void);
+
