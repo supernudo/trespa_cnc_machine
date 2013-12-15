@@ -122,12 +122,12 @@ void dspic_cs_init(void)
 
 	/* QUADRAMP */
 	quadramp_init(&slavedspic.y.qr);
-	quadramp_set_1st_order_vars(&slavedspic.y.qr, 50, 50); 	/* set speed */
-	quadramp_set_2nd_order_vars(&slavedspic.y.qr, 1, 1); 		/* set accel */
+	quadramp_set_1st_order_vars(&slavedspic.y.qr, 70, 70); 	/* set speed */
+	quadramp_set_2nd_order_vars(&slavedspic.y.qr, 5, 5); 		/* set accel */
 
 	/* CS */
 	cs_init(&slavedspic.y.cs);
-	//cs_set_consign_filter(&slavedspic.y.cs, quadramp_do_filter, &slavedspic.y.qr);
+	cs_set_consign_filter(&slavedspic.y.cs, quadramp_do_filter, &slavedspic.y.qr);
 	cs_set_correct_filter(&slavedspic.y.cs, pid_do_filter, &slavedspic.y.pid);
 	cs_set_process_in(&slavedspic.y.cs, pwm_mc_set_and_save, PWM_MC_Y);
 	cs_set_process_out(&slavedspic.y.cs, encoders_dspic_get_value, ENCODER_Y);

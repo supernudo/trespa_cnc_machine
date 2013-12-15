@@ -161,10 +161,10 @@ extern struct slavedspic slavedspic;
                 }                                             \
         }                                                     \
 	if (__ret)					      \
-		DEBUG(E_USER_STRAT, "cond is true at line %d",\
+		DEBUG(E_USER_APP, "cond is true at line %d",\
 		      __LINE__);			      \
 	else						      \
-		DEBUG(E_USER_STRAT, "timeout at line %d",     \
+		DEBUG(E_USER_APP, "timeout at line %d",     \
 		      __LINE__);			      \
 							      \
         __ret;                                                \

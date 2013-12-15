@@ -23,6 +23,10 @@ while(scnp.serial.BytesAvailable > length('slavedspic > '))
     fgetl(scnp.serial);
 end
 
+while(scnp.serial_yz.BytesAvailable > length('slavedspic > '))
+    fgetl(scnp.serial_yz);
+end
+
 
 %% Send command
 
@@ -35,11 +39,19 @@ else
     skip_line = 1;
 end
 
-if nargin == 3
-    fprintf(scnp.serial,[cmd ' ' arg1 ' ' num2str(arg2)])
-else
-    fprintf(scnp.serial,[cmd ' ' arg1])
-end    
+if strcmp(cmd, 'axis_x') || strcmp(cmd, 'alpha') || strcmp(cmd, 'beta')
+    if nargin == 3
+        fprintf(scnp.serial,[cmd ' ' arg1 ' ' num2str(arg2)])
+    else
+        fprintf(scnp.serial,[cmd ' ' arg1])
+    end    
+elseif strcmp(cmd, 'axis_y') || strcmp(cmd, 'axis_z')
+    if nargin == 3
+        fprintf(scnp.serial_yz,[cmd ' ' arg1 ' ' num2str(arg2)])
+    else
+        fprintf(scnp.serial_yz,[cmd ' ' arg1])
+    end   
+end
 
 pause(0.1);
 
@@ -58,7 +70,11 @@ scnp.serial.Timeout = 60;
 while(done == 0 && timeout == 0)
     
     % read line
-    line = fgetl(scnp.serial);
+    if strcmp(cmd, 'axis_x') || strcmp(cmd, 'alpha') || strcmp(cmd, 'beta')
+        line = fgetl(scnp.serial);
+    elseif strcmp(cmd, 'axis_y') || strcmp(cmd, 'axis_z')
+        line = fgetl(scnp.serial_yz);
+    end
     
     % echo, skip lines depens on command
     if skip_line == 0
@@ -86,6 +102,10 @@ while(done == 0 && timeout == 0)
         % update cmd
         if strcmp(cmd, 'axis_x') && strcmp(arg1, 'set')
             scnp.x.cmd_mm = arg2;
+        elseif strcmp(cmd, 'axis_y') && strcmp(arg1, 'set')
+            scnp.y.cmd_mm = arg2;
+        elseif strcmp(cmd, 'axis_z') && strcmp(arg1, 'set')
+            scnp.z.cmd_mm = arg2;
         elseif strcmp(cmd, 'alpha') && strcmp(arg1, 'set')
             scnp.alpha.cmd_deg = arg2;
         elseif strcmp(cmd, 'beta') && strcmp(arg1, 'set')
@@ -108,6 +128,16 @@ while(done == 0 && timeout == 0)
         scnp.x.cmd_min_mm = ret(1);
         scnp.x.cmd_max_mm = ret(2);
     end
+    [ret count] = sscanf(line, 'Axis Y range is [%d %d] mm');
+    if count == 2
+        scnp.y.cmd_min_mm = ret(1);
+        scnp.y.cmd_max_mm = ret(2);
+    end
+    [ret count] = sscanf(line, 'Axis Z range is [%d %d] mm');
+    if count == 2
+        scnp.z.cmd_min_mm = ret(1);
+        scnp.z.cmd_max_mm = ret(2);
+    end
     [ret count] = sscanf(line, 'Alpha range is [%d %d] deg');
     if count == 2
         scnp.alpha.cmd_min_deg = ret(1);
@@ -123,6 +153,14 @@ while(done == 0 && timeout == 0)
     [ret count] = sscanf(line, 'axis_x pos = %f mm');
     if count == 1
         scnp.x.pos_mm = ret;
+    end
+    [ret count] = sscanf(line, 'axis_y pos = %f mm');
+    if count == 1
+        scnp.y.pos_mm = ret;
+    end
+    [ret count] = sscanf(line, 'axis_z pos = %f mm');
+    if count == 1
+        scnp.z.pos_mm = ret;
     end
     [ret count] = sscanf(line, 'alpha angle = %f deg');
     if count == 1

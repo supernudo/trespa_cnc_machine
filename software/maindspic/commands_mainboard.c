@@ -312,7 +312,7 @@ void axis_x_autopos(struct cs_block *csb, struct dac_mc *dac_mc, void * enc_id, 
 	bd_reset(&csb->bd);
 
 	/* calculate X range */
-	maindspic.offset_x_mm = 480;
+	maindspic.offset_x_mm = 339; //480;
 	maindspic.pos_x_max_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + val - (int32_t)(5*DIST_IMP_MM);
 	maindspic.pos_x_min_imp = (int32_t)(5*DIST_IMP_MM);
 	printf("Axis X range is [%ld %ld] mm\n\r",
@@ -465,6 +465,12 @@ static void cmd_axis_x_mode2_parsed(void *parsed_result, void *show)
 		axis_x_set(&maindspic.axis_x, res->arg3);
 	}
 	else if (!strcmp_P(res->arg1, "offset")) {
+
+		if(res->arg3 < 0) {
+			printf_P(PSTR("Bad arguments\r\n"));
+			return;
+		}
+
 		maindspic.offset_x_mm = res->arg3;
 		maindspic.pos_x_min_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + (5*DIST_IMP_MM);
 		maindspic.pos_x_max_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + 54400 - (int32_t)(5*DIST_IMP_MM);
