@@ -135,37 +135,58 @@ void hard_stop(struct cs_block *csb, void * enc_id)
 	csb->qr.previous_out = encoders_dspic_get_value(enc_id);
 }
 
-int8_t wait_pos_end(struct cs_block *csb, void * enc_id)
+int8_t test_pos_end(struct cs_block *csb, void * enc_id)
 {
 	uint8_t ret=0;
 
-	while(ret == 0){
-
-		/* test traj end */
-		if(cs_get_consign(&csb->cs) == cs_get_filtered_consign(&csb->cs)){
-			ret = 1;
-			NOTICE(E_USER_APP, "Positioning ends OK");
-			return 1;
-		}
-
-		/* test blocking */
-		ret = bd_get(&csb->bd);
-		if(ret){
-
-			hard_stop(csb, enc_id);
-			pid_reset(&csb->pid);
-			bd_reset(&csb->bd);
-
-			ERROR(E_USER_APP, "Positioning ends BLOCKING!!");
-			return -1;
-		}
+	/* test traj end */
+	if(cs_get_consign(&csb->cs) == cs_get_filtered_consign(&csb->cs)){
+		ret = 1;
+		NOTICE(E_USER_APP, "Positioning ends OK");
+		return 1;
 	}
+
+	/* test FC */
+	if((enc_id == ENCODER_Y) && (sensor_get(S_Y_FC_L)||sensor_get(S_Y_FC_R))) {
+		ret = 1;
+		NOTICE(E_USER_APP, "Positioning ends at FC");
+		return -1;
+	}
+
+	if((enc_id == ENCODER_Z) && (sensor_get(S_Z_FC_UP)||sensor_get(S_Z_FC_DOWN))) {
+		ret = 1;
+		NOTICE(E_USER_APP, "Positioning ends at FC");
+		return -1;
+	}	
+
+	/* test blocking */
+	ret = bd_get(&csb->bd);
+	if(ret){
+
+		hard_stop(csb, enc_id);
+		pid_reset(&csb->pid);
+		bd_reset(&csb->bd);
+
+		ERROR(E_USER_APP, "Positioning ends BLOCKING!!");
+		return -1;
+	}
+
+	return ret;
+}
+
+int8_t wait_pos_end(struct cs_block *csb, void * enc_id) {
+	uint8_t ret=0;
+	while(ret == 0)
+		ret =test_pos_end(csb, enc_id);
+
+	return ret;
 }
 
 
 #define AUTOPOS_Y_SPEED	600
 #define AUTOPOS_Z_SPEED	15000
-//#define MEASURE_RANGE
+
+#if 0
 void axis_autopos(void * enc_id)
 {
 	/* goto calib sensor side, left and down */
@@ -208,7 +229,168 @@ void axis_autopos(void * enc_id)
 
 	DEBUG(E_USER_APP, "Calibration ends");	
 }
+#endif
 
+void axis_yz_autopos(void) 
+{
+	int8_t ret=0, ret2=0;
+
+	/* check left Y FC */
+	if(sensor_get(S_Y_FC_L)) {
+		NOTICE(E_USER_APP, "Axis Y has reach lelft FC, never must be reached!!");
+
+		NOTICE(E_USER_APP, "Trying to calibrate");
+		pwm_mc_set(PWM_MC_Y, Y_PWM_VALUE_MAX);
+
+		/* calib sensor ON */
+		ret = WAIT_COND_OR_TIMEOUT(sensor_get(S_Y_CALIB), 10000);
+		if(ret == 0) {
+			pwm_mc_set(PWM_MC_Y, 0);
+			ERROR(E_USER_APP, "Calib sensor Y not found in path");
+			return;
+		} 
+
+		/* calib sensor OFF */
+		ret = WAIT_COND_OR_TIMEOUT(!sensor_get(S_Y_CALIB), 10000);
+		if(ret == 0) {
+			pwm_mc_set(PWM_MC_Y, 0);
+			ERROR(E_USER_APP, "Calib sensor Y turn OFF timeout");
+			return;
+		} 
+
+		/* continua a bit and stotp */
+		wait_ms(2000);
+		pwm_mc_set(PWM_MC_Y, 0);
+	}
+
+	/* check down Z FC */
+	if(sensor_get(S_Z_FC_DOWN)) {
+		NOTICE(E_USER_APP, "Axis Z has reach down FC, never must be reached!!");
+
+		NOTICE(E_USER_APP, "Trying to calibrate");
+		dac_mc_set(DAC_MC_Z, Z_DAC_VALUE_MAX);
+
+		/* calib sensor ON */
+		ret = WAIT_COND_OR_TIMEOUT(sensor_get(S_Z_CALIB), 10000);
+		if(ret == 0) {
+			dac_mc_set(DAC_MC_Z, 0);
+			ERROR(E_USER_APP, "Calib sensor Z not found in path");
+			return;
+		} 
+
+		/* calib sensor OFF */
+		ret = WAIT_COND_OR_TIMEOUT(!sensor_get(S_Z_CALIB), 10000);
+		if(ret == 0) {
+			dac_mc_set(DAC_MC_Z, 0);
+			ERROR(E_USER_APP, "Calib sensor Z not turn OFF");
+			return;
+		} 
+
+		/* continua a bit and stotp */
+		wait_ms(2000);
+		dac_mc_set(DAC_MC_Z, 0);
+	}
+
+	DEBUG(E_USER_APP, "Ready for axes calibration");
+
+	/* goto calib sensor side, left and down */
+	pwm_mc_set(PWM_MC_Y, -Y_PWM_VALUE_MAX); 
+	dac_mc_set(DAC_MC_Z, -Z_DAC_VALUE_MAX);
+	DEBUG(E_USER_APP, "Goto calib sensor side (left and down)");
+	
+	/* wait for sensor activation and stop */
+	while( (!sensor_get(S_Y_CALIB) || !sensor_get(S_Z_CALIB)) &&
+			!sensor_get(S_Y_FC_L) && 
+			!sensor_get(S_Z_FC_DOWN)) {
+	
+		if(sensor_get(S_Y_CALIB))
+			pwm_mc_set(PWM_MC_Y, 0);
+
+		if(sensor_get(S_Z_CALIB))
+			dac_mc_set(DAC_MC_Z, 0);
+	}
+
+	pwm_mc_set(PWM_MC_Y, 0); 
+	dac_mc_set(DAC_MC_Z, 0);
+	
+	if(sensor_get(S_Y_FC_L)) {
+		ERROR(E_USER_APP, "Y left FC reached");
+		return;
+	}
+	if(sensor_get(S_Z_FC_DOWN)) {
+		ERROR(E_USER_APP, "Z down FC reached");
+		return;
+	}
+
+	DEBUG(E_USER_APP, "Calib sensor reached, stopped");
+
+	/* calib Y */
+	sensor_axis_y_enable_calib();
+	pwm_mc_set(PWM_MC_Y, AUTOPOS_Y_SPEED);
+	DEBUG(E_USER_APP, "Calib Y edge event enabled, goto reach it");
+
+	ret = WAIT_COND_OR_TIMEOUT(!sensor_get(S_Y_CALIB), 10000);
+
+	pwm_mc_set(PWM_MC_Y, 0);
+	sensor_axis_y_disable_calib();
+
+	if(ret == 0) {
+		ERROR(E_USER_APP, "Calib sensor Y turn OFF timeout");
+		return;
+	} 
+
+	/* set Y range */
+	slavedspic.y_offset_mm = 0;	slavedspic.y_pos_max_imp = (int32_t)((slavedspic.y_offset_mm*DIST_IMP_MM) + Y_POS_MAX_IMP);	slavedspic.y_pos_min_imp = (int32_t)((slavedspic.y_offset_mm*DIST_IMP_MM) + Y_POS_MIN_IMP);	printf("Axis Y range is [%ld %ld] mm\n\r",	 (int32_t)(slavedspic.y_pos_min_imp/DIST_IMP_MM),	 (int32_t)(slavedspic.y_pos_max_imp/DIST_IMP_MM));
+
+	DEBUG(E_USER_APP, "Axis Y calibration ends");
+
+	/* calib Z */
+	sensor_axis_z_enable_calib();
+	dac_mc_set(DAC_MC_Z, AUTOPOS_Z_SPEED);
+	DEBUG(E_USER_APP, "Calib Z edge event enabled, goto reach it");
+
+	ret = WAIT_COND_OR_TIMEOUT(!sensor_get(S_Z_CALIB), 10000);
+
+	dac_mc_set(DAC_MC_Z, 0);
+	sensor_axis_z_disable_calib();
+
+	if(ret == 0) {
+		ERROR(E_USER_APP, "Calib sensor Z turn OFF timeout");
+		return;
+	} 
+
+	/* set Z range */
+	slavedspic.z_offset_mm = 0;	slavedspic.z_pos_max_imp = (int32_t)((slavedspic.z_offset_mm*DIST_IMP_MM) + Z_POS_MAX_IMP);	slavedspic.z_pos_min_imp = (int32_t)((slavedspic.z_offset_mm*DIST_IMP_MM) + Z_POS_MIN_IMP);	printf("Axis Z range is [%ld %ld] mm\n\r",	 (int32_t)(slavedspic.z_pos_min_imp/DIST_IMP_MM),	 (int32_t)(slavedspic.z_pos_max_imp/DIST_IMP_MM));
+
+	DEBUG(E_USER_APP, "Axis Z calibration ends");
+
+
+	/* enable CS and goto zero */
+	cs_set_consign(&slavedspic.y.cs, 0);
+	cs_set_consign(&slavedspic.z.cs, 0);
+
+	slavedspic.flags |= DO_CS;
+	DEBUG(E_USER_APP, "Goto zero");
+
+	/* wait trajectories end */
+	while( ret == 0 || ret2 == 0) {
+		ret = test_pos_end(&slavedspic.y, ENCODER_Y);
+		ret2 = test_pos_end(&slavedspic.z, ENCODER_Z);
+	}
+
+	/* set calibrate flag */
+	if(ret == 1)
+		slavedspic.y_calib = 1;
+	else
+		ERROR(E_USER_APP, "Axis Y fails going to zero with CS");
+
+	if(ret2 == 1)
+		slavedspic.z_calib = 1;
+	else
+		ERROR(E_USER_APP, "Axis Z fails going to zero with CS");
+
+	DEBUG(E_USER_APP, "Calibration ends OK, axes shoud be at zero position");	
+}
 
 
 void axis_z_set(int32_t dist_mm)
@@ -231,7 +413,7 @@ void axis_z_set(int32_t dist_mm)
 	}
 
 	/* set consign */
-	cs_set_consign(&slavedspic.z.cs, (int32_t)((dist_mm+slavedspic.z_offset_mm)*DIST_IMP_MM));
+	cs_set_consign(&slavedspic.z.cs, (int32_t)((dist_mm-slavedspic.z_offset_mm)*DIST_IMP_MM));
 	DEBUG(E_USER_APP, "Set axis Z consign to %ld deg (%ld imp)",
 		dist_mm, (int32_t)(dist_mm*DIST_IMP_MM));
 
@@ -259,7 +441,7 @@ void axis_y_set(int32_t dist_mm)
 	}
 
 	/* set consign */
-	cs_set_consign(&slavedspic.y.cs, (int32_t)((dist_mm+slavedspic.y_offset_mm)*DIST_IMP_MM));
+	cs_set_consign(&slavedspic.y.cs, (int32_t)((dist_mm-slavedspic.y_offset_mm)*DIST_IMP_MM));
 	DEBUG(E_USER_APP, "Set axis Y consign to %ld deg (%ld imp)",
 		dist_mm, (int32_t)(dist_mm*DIST_IMP_MM));
 
@@ -275,7 +457,7 @@ double axis_z_get(void)
 		return 0.0;	
 	}		
 
-	return ((double)((encoders_dspic_get_value(ENCODER_Z)/DIST_IMP_MM) - slavedspic.z_offset_mm));
+	return ((double)(slavedspic.z_offset_mm + (encoders_dspic_get_value(ENCODER_Z)/DIST_IMP_MM)));
 }
 
 double axis_y_get(void)
@@ -286,7 +468,7 @@ double axis_y_get(void)
 		return 0.0;	
 	}		
 
-	return ((double)((encoders_dspic_get_value(ENCODER_Y)/DIST_IMP_MM) - slavedspic.y_offset_mm));
+	return ((double)(slavedspic.y_offset_mm + (encoders_dspic_get_value(ENCODER_Y)/DIST_IMP_MM)));
 }
 
 /**********************************************************/
@@ -307,7 +489,7 @@ static void cmd_axis_mode1_parsed(void *parsed_result, void *data)
 	if (!strcmp_P(res->arg0, "axis_z")) {
 
 		if (!strcmp_P(res->arg1, "autopos")) {
-			axis_autopos(ENCODER_Z);
+			printf("Not yet implemented, use 'axis_yz autopos' instead\n\r");
 		}
 		else if (!strcmp_P(res->arg1, "get")) {
 			ret = axis_z_get();
@@ -317,18 +499,27 @@ static void cmd_axis_mode1_parsed(void *parsed_result, void *data)
 	else if (!strcmp_P(res->arg0, "axis_y")) {
 
 		if (!strcmp_P(res->arg1, "autopos")) {
-			axis_autopos(ENCODER_Y);
+			printf("Not yet implemented, use 'axis_yz autopos' instead\n\r");
 		}
 		else if (!strcmp_P(res->arg1, "get")) {
 			ret = axis_y_get();
 			printf("axis_y pos = %.4f mm\n\r", ret);
 		}
 	}
+	else if (!strcmp_P(res->arg0, "axis_yz")) {
+
+		if (!strcmp_P(res->arg1, "autopos")) {
+			axis_yz_autopos();
+		}
+		else if (!strcmp_P(res->arg1, "get")) {
+			printf("Not yet implemented, use 'axis_y/axis_z get' instead\n\r");
+		}
+	}
 
 	printf("Done\n\r");
 }
 
-prog_char str_axis_mode1_arg0[] = "axis_y#axis_z";
+prog_char str_axis_mode1_arg0[] = "axis_y#axis_z#axis_yz";
 parse_pgm_token_string_t cmd_axis_mode1_arg0 = TOKEN_STRING_INITIALIZER(struct cmd_axis_mode1_result, arg0, str_axis_mode1_arg0);
 prog_char str_axis_mode1_arg1[] = "autopos#get";
 parse_pgm_token_string_t cmd_axis_mode1_arg1 = TOKEN_STRING_INITIALIZER(struct cmd_axis_mode1_result, arg1, str_axis_mode1_arg1);
@@ -374,9 +565,14 @@ static void cmd_axis_mode2_parsed(void *parsed_result, void *show)
 			axis_y_set(res->arg3);
 		}
 		else if (!strcmp_P(res->arg1, "offset")) {
+
+			if(res->arg3 < 0) {
+				printf_P(PSTR("Bad arguments\r\n"));
+				return;
+			}
+
 			slavedspic.y_offset_mm = res->arg3;
-			slavedspic.y_pos_min_imp = Y_POS_MIN_IMP - (int32_t)(slavedspic.y_offset_mm*DIST_IMP_MM);
-			slavedspic.y_pos_max_imp = Y_POS_MAX_IMP - (int32_t)(slavedspic.y_offset_mm*DIST_IMP_MM);
+			slavedspic.y_pos_max_imp = (int32_t)((slavedspic.y_offset_mm*DIST_IMP_MM) + Y_POS_MAX_IMP);			slavedspic.y_pos_min_imp = (int32_t)((slavedspic.y_offset_mm*DIST_IMP_MM) + Y_POS_MIN_IMP);
 	
 			printf("Axis Y range is [%ld %ld] mm\n\r",
 			 (int32_t)(slavedspic.y_pos_min_imp/DIST_IMP_MM),
@@ -397,9 +593,14 @@ static void cmd_axis_mode2_parsed(void *parsed_result, void *show)
 			axis_z_set(res->arg3);
 		}
 		else if (!strcmp_P(res->arg1, "offset")) {
+
+			if(res->arg3 < 0) {
+				printf_P(PSTR("Bad arguments\r\n"));
+				return;
+			}
+				
 			slavedspic.z_offset_mm = res->arg3;
-			slavedspic.z_pos_min_imp = Z_POS_MIN_IMP - (int32_t)(slavedspic.z_offset_mm*DIST_IMP_MM);
-			slavedspic.z_pos_max_imp = Z_POS_MAX_IMP - (int32_t)(slavedspic.z_offset_mm*DIST_IMP_MM);
+			slavedspic.z_pos_max_imp = (int32_t)((slavedspic.z_offset_mm*DIST_IMP_MM) + Z_POS_MAX_IMP);			slavedspic.z_pos_min_imp = (int32_t)((slavedspic.z_offset_mm*DIST_IMP_MM) + Z_POS_MIN_IMP);
 	
 			printf("Axis Y range is [%ld %ld] mm\n\r",
 			 (int32_t)(slavedspic.z_pos_min_imp/DIST_IMP_MM),
@@ -454,793 +655,4 @@ parse_pgm_inst_t cmd_axis_mode2_show = {
 	},
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* Application functions */
-
-/* TODO */
-
-#ifdef TODO
-
-void hard_stop(struct cs_block *csb, void * enc_id)
-{
-	cs_set_consign(&csb->cs, encoders_dspic_get_value(enc_id));
-
-	csb->qr.previous_var = 0;
-	csb->qr.previous_out = encoders_dspic_get_value(enc_id);
-}
-
-int8_t wait_pos_end(struct cs_block *csb)
-{
-	uint8_t ret=0;
-
-	while(ret == 0){
-
-		/* test traj end */
-		if(cs_get_consign(&csb->cs) == cs_get_filtered_consign(&csb->cs)){
-			ret = 1;
-			//NOTICE(E_USER_APP, "Trajectory end at %f deg",
-			//	 (double)(encoders_dspic_get_value(enc_id)/ANGLE_IMP_DEG));
-			NOTICE(E_USER_APP, "Positioning ends OK");
-			return 1;
-		}
-
-		/* test blocking */
-		ret = bd_get(&csb->bd);
-		if(ret){
-			if(csb == &slavedspic.alpha)
-				hard_stop(csb, ALPHA_ENCODER);
-			else
-				hard_stop(csb, BETA_ENCODER);
-				
-			pid_reset(&csb->pid);
-			bd_reset(&csb->bd);
-
-			ERROR(E_USER_APP, "Positioning end BLOCKING!!");
-			return -1;
-		}
-	}
-}
-
-
-
-#define AUTOPOS_SPEED	1
-void angle_autopos(struct cs_block *csb, uint16_t ax12_id, void * enc_id, uint8_t reverse)
-{
-	int32_t val;
-	int16_t angle_consign;
-	int8_t ret;
-
-	/* disable position bd */
-	slavedspic.position_bd = 0;
-
-	/* set calibrate angle consign */
-	if(ax12_id == ALPHA_AX12)
-		angle_consign = 102;
-	else
-		angle_consign = 62;
-
-
-	/* set new speed and gains */
-	quadramp_set_1st_order_vars(&csb->qr, AUTOPOS_SPEED, AUTOPOS_SPEED);
-	pid_set_gains(&csb->pid, 10000, 0, 20000);
-	DEBUG(E_USER_APP, "New speed is %d", (int16_t)AUTOPOS_SPEED);
-
-	/* goto zero with cs */
-	slavedspic.flags |= DO_CS;
-	if(reverse)
-		cs_set_consign(&csb->cs, (int32_t)(angle_consign*ANGLE_IMP_DEG));
-	else
-		cs_set_consign(&csb->cs, (int32_t)(-(angle_consign*ANGLE_IMP_DEG)));
-	
-	DEBUG(E_USER_APP, "Goto zero, reverse = %d", reverse);	
-
-	/* wait end blocking */
-	while(!bd_get(&csb->bd));	
-	DEBUG(E_USER_APP, "End blocking");			
-
-	/* brake on and disable cs */
-	slavedspic.flags &= (~DO_CS);
-	ax12_set_and_save((void *)ax12_id, 0);
-	BRAKE_ON();
-	quadramp_reset(&csb->qr);
-	pid_reset(&csb->pid);
-	bd_reset(&csb->bd);
-
-	/* push a little and reset encoder */
-	ax12_set_and_save((void *)ax12_id, -350);
-	wait_ms(100);
-	encoders_dspic_set_value(enc_id, 0);
-	ax12_set_and_save((void *)ax12_id, 0);
-	csb->qr.previous_var = 0;
-	csb->qr.previous_out = encoders_dspic_get_value(enc_id);
-	cs_set_consign(&csb->cs, encoders_dspic_get_value(enc_id));
-
-	DEBUG(E_USER_APP, "Encoder reset to zero");	
-
-
-	/* goto opposite with cs */
-	slavedspic.flags |= DO_CS;
-	if(reverse)
-		cs_set_consign(&csb->cs, (int32_t)(-(angle_consign*ANGLE_IMP_DEG)));
-	else
-		cs_set_consign(&csb->cs, (int32_t)(angle_consign*ANGLE_IMP_DEG));
-
-	DEBUG(E_USER_APP, "Goto opposite, reverse = %d", reverse);	
-	
-	/* wait end blocking */
-	while(!bd_get(&csb->bd));	
-	DEBUG(E_USER_APP, "End blocking");			
-
-	/* brake on and disable cs */
-	slavedspic.flags &= (~DO_CS);
-	ax12_set_and_save((void *)ax12_id, 0);
-	BRAKE_ON();
-	quadramp_reset(&csb->qr);
-	pid_reset(&csb->pid);
-	bd_reset(&csb->bd);
-
-	/* push a little and get encoder */
-	ax12_set_and_save((void *)ax12_id, 40);
-	wait_ms(100);
-	val = encoders_dspic_get_value(enc_id);
-	ax12_set_and_save((void *)ax12_id, 0);
-
-	/* set encoder offset */
-	encoders_dspic_set_value(enc_id, (int32_t)(val/2));
-	csb->qr.previous_var = 0;
-	csb->qr.previous_out = encoders_dspic_get_value(enc_id);
-	cs_set_consign(&csb->cs, encoders_dspic_get_value(enc_id));
-
-	DEBUG(E_USER_APP, "Encoder set to %ld of %ld impulses", (int32_t)(val/2), (int32_t)val);	
-
-	/* calcule limit ranges */
-	if(ax12_id == ALPHA_AX12){
-		slavedspic.alpha_pos_max_imp = (int32_t)((val/2)-(ANGLE_IMP_DEG));
-		slavedspic.alpha_pos_min_imp = -(int32_t)((val/2)-(ANGLE_IMP_DEG));
-		printf("Alpha range is [%ld %ld] deg\n\r", 
-			(int32_t)(slavedspic.alpha_pos_max_imp/ANGLE_IMP_DEG),
-			(int32_t)(slavedspic.alpha_pos_min_imp/ANGLE_IMP_DEG));
-	}
-	else{
-		slavedspic.beta_pos_max_imp = (int32_t)((val/2)-(ANGLE_IMP_DEG));
-		slavedspic.beta_pos_min_imp = -(int32_t)((val/2)-(ANGLE_IMP_DEG));
-		printf("Beta range is [%ld %ld] deg\n\r",			
-			(int32_t)(slavedspic.beta_pos_max_imp/ANGLE_IMP_DEG),
-			(int32_t)(slavedspic.beta_pos_min_imp/ANGLE_IMP_DEG));
-	}	
-	
-	/* restore normal speed */
-	quadramp_set_1st_order_vars(&csb->qr, NORMAL_SPEED, NORMAL_SPEED);
-	pid_set_gains(&csb->pid, 10000, 800, 20000);
-	DEBUG(E_USER_APP, "New speed is %d", (int16_t)NORMAL_SPEED);
-
-	/* disable position bd */
-	slavedspic.position_bd = 1;
-
-	/* goto new zero with cs */
-	cs_set_consign(&csb->cs, 0);
-	slavedspic.flags |= DO_CS;
-	DEBUG(E_USER_APP, "Goto new zero");
-
-	/* wait trajectory end */
-	ret = wait_pos_end(csb);
-
-	/* set calibrate flag */
-	if(ret == 1){
-		if(csb == &slavedspic.alpha)
-			slavedspic.alpha_calib = 1;
-		else
-			slavedspic.beta_calib = 1;
-	}
-
-	DEBUG(E_USER_APP, "Calibration ends");	
-}
-
-void angle_set(struct cs_block *csb, int32_t angle_deg)
-{
-	int32_t val_imp;
-
-	/* check if angle is calibrated */
-	if(csb == &slavedspic.alpha){
-		if(!slavedspic.alpha_calib){
-			printf("Angle is not calibrated yet\n\r");
-			return;	
-		}
-	}	
-	else{
-		if(!slavedspic.beta_calib){
-			printf("Angle is not calibrated yet\n\r");
-			return;	
-		}
-	}		
-
-
-	/* value in deg */
-	val_imp = (int32_t)(angle_deg*ANGLE_IMP_DEG);
-
-	/* check valid range */
-	if(csb == &slavedspic.alpha){
-		if((val_imp < slavedspic.alpha_pos_min_imp) || (val_imp > slavedspic.alpha_pos_max_imp)){
-			printf("Consign out of range\n\r");
-			return;	
-		}
-	}
-	else{
-		if((val_imp < slavedspic.beta_pos_min_imp) || (val_imp > slavedspic.beta_pos_max_imp)){
-			printf("Consign out of range\n\r");
-			return;	
-		}
-	}	
-
-	/* set consign */
-	cs_set_consign(&csb->cs, (int32_t)(angle_deg*ANGLE_IMP_DEG));
-	DEBUG(E_USER_APP, "Set angle consign to %ld deg (%ld imp)",
-		angle_deg, (int32_t)(angle_deg*ANGLE_IMP_DEG));
-
-	/* wait trajectory end */
-	wait_pos_end(csb);
-}
-
-double angle_get(void * enc_id)
-{
-	/* check if angle is calibrated */
-	if(enc_id == ALPHA_ENCODER){
-		if(!slavedspic.alpha_calib){
-			printf("Angle is not calibrated yet\n\r");
-			return 0;	
-		}
-	}	
-	else{
-		if(!slavedspic.beta_calib){
-			printf("Angle is not calibrated yet\n\r");
-			return 0;	
-		}
-	}
-
-	return ((double)(encoders_dspic_get_value(enc_id)/ANGLE_IMP_DEG));
-}
-
-
-
-/**********************************************************/
-/* Alpha mode1 */
-
-/* this structure is filled when cmd_alpha_mode1 is parsed successfully */
-struct cmd_alpha_mode1_result {
-	fixed_string_t arg0;
-	fixed_string_t arg1;
-};
-
-/* function called when cmd_alpha_mode1 is parsed successfully */
-static void cmd_alpha_mode1_parsed(void *parsed_result, void *data)
-{
-	struct cmd_alpha_mode1_result *res = parsed_result;
-	double ret;
-
-	if (!strcmp_P(res->arg1, "autopos")) {
-		angle_autopos(&slavedspic.alpha, ALPHA_AX12, ALPHA_ENCODER, 0);
-	}
-	else if (!strcmp_P(res->arg1, "get")) {
-		ret = angle_get(ALPHA_ENCODER);
-		printf("alpha angle = %.3f deg\n\r", ret);
-	}
-
-	printf("Done\n\r");
-}
-
-prog_char str_alpha_mode1_arg0[] = "alpha";
-parse_pgm_token_string_t cmd_alpha_mode1_arg0 = TOKEN_STRING_INITIALIZER(struct cmd_alpha_mode1_result, arg0, str_alpha_mode1_arg0);
-prog_char str_alpha_mode1_arg1[] = "autopos#get";
-parse_pgm_token_string_t cmd_alpha_mode1_arg1 = TOKEN_STRING_INITIALIZER(struct cmd_alpha_mode1_result, arg1, str_alpha_mode1_arg1);
-
-prog_char help_alpha_mode1[] = "Alpha positioning commands (mode1)";
-parse_pgm_inst_t cmd_alpha_mode1 = {
-	.f = cmd_alpha_mode1_parsed,  /* function to call */
-	.data = NULL,      /* 2nd arg of func */
-	.help_str = help_alpha_mode1,
-	.tokens = {        /* token list, NULL terminated */
-		(prog_void *)&cmd_alpha_mode1_arg0, 
-		(prog_void *)&cmd_alpha_mode1_arg1, 
-		NULL,
-	},
-};
-
-/**********************************************************/
-/* Alpha mode2 */
-
-/* this structure is filled when cmd_alpha_mode2 is parsed successfully */
-struct cmd_alpha_mode2_result {
-	fixed_string_t arg0;
-	fixed_string_t arg1;
-	int16_t arg3;
-};
-
-/* function called when cmd_alpha_mode2 is parsed successfully */
-static void cmd_alpha_mode2_parsed(void *parsed_result, void *data)
-{
-	struct cmd_alpha_mode2_result *res = parsed_result;
-
-	if (!strcmp_P(res->arg1, "set")) {
-		angle_set(&slavedspic.alpha, res->arg3);
-		printf("Done\n\r");
-	}
-}
-
-prog_char str_alpha_mode2_arg0[] = "alpha";
-parse_pgm_token_string_t cmd_alpha_mode2_arg0 = TOKEN_STRING_INITIALIZER(struct cmd_alpha_mode2_result, arg0, str_alpha_mode2_arg0);
-prog_char str_alpha_mode2_arg1[] = "set";
-parse_pgm_token_string_t cmd_alpha_mode2_arg1 = TOKEN_STRING_INITIALIZER(struct cmd_alpha_mode2_result, arg1, str_alpha_mode2_arg1);
-parse_pgm_token_num_t cmd_alpha_mode2_arg3 = TOKEN_NUM_INITIALIZER(struct cmd_alpha_mode2_result, arg3, INT16);
-
-prog_char help_alpha_mode2[] = "Alpha positioning commands (mode2)";
-parse_pgm_inst_t cmd_alpha_mode2 = {
-	.f = cmd_alpha_mode2_parsed,  /* function to call */
-	.data = NULL,      /* 2nd arg of func */
-	.help_str = help_alpha_mode2,
-	.tokens = {        /* token list, NULL terminated */
-		(prog_void *)&cmd_alpha_mode2_arg0, 
-		(prog_void *)&cmd_alpha_mode2_arg1, 
-		(prog_void *)&cmd_alpha_mode2_arg3,
-		NULL,
-	},
-};
-
-
-/**********************************************************/
-/* Beta mode1 */
-
-/* this structure is filled when cmd_beta_mode1 is parsed successfully */
-struct cmd_beta_mode1_result {
-	fixed_string_t arg0;
-	fixed_string_t arg1;
-};
-
-/* function called when cmd_beta_mode1 is parsed successfully */
-static void cmd_beta_mode1_parsed(void *parsed_result, void *data)
-{
-	struct cmd_beta_mode1_result *res = parsed_result;
-	double ret;
-
-	if (!strcmp_P(res->arg1, "autopos")) {
-		angle_autopos(&slavedspic.beta, BETA_AX12, BETA_ENCODER, 0);
-	}
-	else if (!strcmp_P(res->arg1, "get")) {
-		ret = angle_get(BETA_ENCODER);
-		printf("beta angle = %.3f deg\n\r", ret);
-	}
-
-	printf("Done\n\r");
-}
-
-prog_char str_beta_mode1_arg0[] = "beta";
-parse_pgm_token_string_t cmd_beta_mode1_arg0 = TOKEN_STRING_INITIALIZER(struct cmd_beta_mode1_result, arg0, str_beta_mode1_arg0);
-prog_char str_beta_mode1_arg1[] = "autopos#get";
-parse_pgm_token_string_t cmd_beta_mode1_arg1 = TOKEN_STRING_INITIALIZER(struct cmd_beta_mode1_result, arg1, str_beta_mode1_arg1);
-
-prog_char help_beta_mode1[] = "Beta positioning commands (mode1)";
-parse_pgm_inst_t cmd_beta_mode1 = {
-	.f = cmd_beta_mode1_parsed,  /* function to call */
-	.data = NULL,      /* 2nd arg of func */
-	.help_str = help_beta_mode1,
-	.tokens = {        /* token list, NULL terminated */
-		(prog_void *)&cmd_beta_mode1_arg0, 
-		(prog_void *)&cmd_beta_mode1_arg1, 
-		NULL,
-	},
-};
-
-/**********************************************************/
-/* Beta mode2 */
-
-/* this structure is filled when cmd_beta_mode2 is parsed successfully */
-struct cmd_beta_mode2_result {
-	fixed_string_t arg0;
-	fixed_string_t arg1;
-	int16_t arg3;
-};
-
-/* function called when cmd_beta_mode2 is parsed successfully */
-static void cmd_beta_mode2_parsed(void *parsed_result, void *data)
-{
-	struct cmd_beta_mode2_result *res = parsed_result;
-
-	if (!strcmp_P(res->arg1, "set")) {
-		angle_set(&slavedspic.beta, (double)res->arg3);
-		printf("Done\n\r");
-	}
-}
-
-prog_char str_beta_mode2_arg0[] = "beta";
-parse_pgm_token_string_t cmd_beta_mode2_arg0 = TOKEN_STRING_INITIALIZER(struct cmd_beta_mode2_result, arg0, str_beta_mode2_arg0);
-prog_char str_beta_mode2_arg1[] = "set";
-parse_pgm_token_string_t cmd_beta_mode2_arg1 = TOKEN_STRING_INITIALIZER(struct cmd_beta_mode2_result, arg1, str_beta_mode2_arg1);
-parse_pgm_token_num_t cmd_beta_mode2_arg3 = TOKEN_NUM_INITIALIZER(struct cmd_beta_mode2_result, arg3, INT16);
-
-prog_char help_beta_mode2[] = "Beta positioning commands (mode2)";
-parse_pgm_inst_t cmd_beta_mode2 = {
-	.f = cmd_beta_mode2_parsed,  /* function to call */
-	.data = NULL,      /* 2nd arg of func */
-	.help_str = help_beta_mode2,
-	.tokens = {        /* token list, NULL terminated */
-		(prog_void *)&cmd_beta_mode2_arg0, 
-		(prog_void *)&cmd_beta_mode2_arg1, 
-		(prog_void *)&cmd_beta_mode2_arg3,
-		NULL,
-	},
-};
-
-
-
-
-
-
-/* Application functions */
-
-void hard_stop(struct cs_block *csb, void * enc_id)
-{
-	cs_set_consign(&csb->cs, encoders_dspic_get_value(enc_id));
-
-	csb->qr.previous_var = 0;
-	csb->qr.previous_out = encoders_dspic_get_value(enc_id);
-}
-
-int8_t wait_pos_end(struct cs_block *csb)
-{
-	uint8_t ret=0;
-
-	while(ret == 0){
-
-		/* test traj end */
-		if(cs_get_consign(&csb->cs) == cs_get_filtered_consign(&csb->cs)){
-			ret = 1;
-			NOTICE(E_USER_APP, "Positioning ends OK");
-			return 1;
-		}
-
-		/* test blocking */
-		ret = bd_get(&csb->bd);
-		if(ret){
-
-			hard_stop(csb, X_ENCODER);
-			pid_reset(&csb->pid);
-			bd_reset(&csb->bd);
-
-			ERROR(E_USER_APP, "Positioning ends BLOCKING!!");
-			return -1;
-		}
-	}
-}
-
-#define AUTOPOS_SPEED	1
-#define AUTOPOS_ACCEL	100
-//#define MEASURE_X_RANGE
-void axis_x_autopos(struct cs_block *csb, struct dac_mc *dac_mc, void * enc_id, uint8_t reverse)
-{
-#ifdef MEASURE_X_RANGE
-	int32_t val;
-#endif
-	int8_t ret;
-
-	/* disable position bd */
-	maindspic.position_bd = 0;
-
-	/* set PID constants */
-	pid_set_gains(&csb->pid, 800, 0, 5000);
-
-	/* goto out zero FC range */
-	if(sensor_get(S_X_MOT_L_FC)){
-		maindspic.flags |= DO_CS;
-		if(reverse)
-			cs_set_consign(&csb->cs, (int32_t)(-200*DIST_IMP_MM));
-		else
-			cs_set_consign(&csb->cs, (int32_t)((200*DIST_IMP_MM)));
-
-		while(sensor_get(S_X_MOT_L_FC));
-	}
-
-	/* goto zero with cs */
-	maindspic.flags |= DO_CS;
-	if(reverse)
-		cs_set_consign(&csb->cs, (int32_t)(5000*DIST_IMP_MM));
-	else
-		cs_set_consign(&csb->cs, (int32_t)(-(5000*DIST_IMP_MM)));
-	
-	DEBUG(E_USER_APP, "Goto zero, reverse = %d", reverse);	
-
-	/* wait FC */
-	while(!sensor_get(S_X_MOT_L_FC));
-	DEBUG(E_USER_APP, "zero FC reached");			
-
-	/* set low speed, and hi acceleration for fast response */
-	quadramp_set_1st_order_vars(&csb->qr, AUTOPOS_SPEED, AUTOPOS_SPEED);
-	quadramp_set_2nd_order_vars(&csb->qr, AUTOPOS_ACCEL, AUTOPOS_ACCEL);
-	DEBUG(E_USER_APP, "Down speed, new speed is %d", (int16_t)AUTOPOS_SPEED);
-
-	/* wait end blocking */
-	while(!bd_get(&csb->bd));	
-	DEBUG(E_USER_APP, "End blocking");			
-
-	/* reset encoder */
-	encoders_dspic_set_value(enc_id, 0);
-	hard_stop(csb, X_ENCODER);
-	pid_reset(&csb->pid);
-	bd_reset(&csb->bd);
-
-	DEBUG(E_USER_APP, "Encoder reset to zero");	
-
-	/* restore normal speed and acceleration */
-	quadramp_set_1st_order_vars(&csb->qr, NORMAL_SPEED, NORMAL_SPEED);
-	quadramp_set_2nd_order_vars(&csb->qr, 1, 1);
-	DEBUG(E_USER_APP, "New speed is %d", (int16_t)NORMAL_SPEED);
-
-#ifdef MEASURE_X_RANGE
-	/* goto opposite with cs */
-	maindspic.flags |= DO_CS;
-	if(reverse)
-		cs_set_consign(&csb->cs, (int32_t)(-(5000*DIST_IMP_MM)));
-	else
-		cs_set_consign(&csb->cs, (int32_t)(5000*DIST_IMP_MM));
-
-	DEBUG(E_USER_APP, "Goto opposite, reverse = %d", reverse);	
-	
-	/* wait FC */
-	while(!sensor_get(S_X_MOT_R_FC));
-	DEBUG(E_USER_APP, "opposite FC reached");			
-
-	/* set low speed */
-	quadramp_set_1st_order_vars(&csb->qr, AUTOPOS_SPEED, AUTOPOS_SPEED);
-	quadramp_set_2nd_order_vars(&csb->qr, AUTOPOS_ACCEL, AUTOPOS_ACCEL);
-	DEBUG(E_USER_APP, "Down speed, new speed is %d", (int16_t)AUTOPOS_SPEED);
-
-	/* wait end blocking */
-	while(!bd_get(&csb->bd));	
-	DEBUG(E_USER_APP, "End blocking");			
-
-	/* get encoder value and stop */
-	val = encoders_dspic_get_value(enc_id);
-	hard_stop(csb, X_ENCODER);
-	pid_reset(&csb->pid);
-	bd_reset(&csb->bd);
-
-	/* calculate X range */
-	maindspic.offset_x_mm = 480;
-	maindspic.pos_x_max_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + val - (int32_t)(5*DIST_IMP_MM);
-	maindspic.pos_x_min_imp = (int32_t)(5*DIST_IMP_MM);
-	printf("Axis X range is [%ld %ld] mm\n\r",
-	 (int32_t)(maindspic.pos_x_min_imp/DIST_IMP_MM),
-	 (int32_t)(maindspic.pos_x_max_imp/DIST_IMP_MM));
-	DEBUG(E_USER_APP, "Encoder get %ld impulses", (int32_t)val);	
-#else
-	/* calculate X range */
-	maindspic.offset_x_mm = 480;
-	maindspic.pos_x_max_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + 54400 - (int32_t)(5*DIST_IMP_MM);
-	maindspic.pos_x_min_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + (5*DIST_IMP_MM);
-	printf("Axis X range is [%ld %ld] mm\n\r",
-	 (int32_t)(maindspic.pos_x_min_imp/DIST_IMP_MM),
-	 (int32_t)(maindspic.pos_x_max_imp/DIST_IMP_MM));
-#endif
-
-
-	/* restore normal speed, acceleration and PID */
-	quadramp_set_1st_order_vars(&csb->qr, NORMAL_SPEED, NORMAL_SPEED);
-	quadramp_set_2nd_order_vars(&csb->qr, 1, 1);
-	pid_set_gains(&csb->pid, P_CONST, I_CONST, D_CONST);
-	DEBUG(E_USER_APP, "New speed is %d", (int16_t)NORMAL_SPEED);
-
-	/* disable position bd */
-	maindspic.position_bd = 1;
-
-	/* goto new zero with cs */
-	cs_set_consign(&csb->cs, (int32_t)(10*DIST_IMP_MM));
-	maindspic.flags |= DO_CS;
-	DEBUG(E_USER_APP, "Goto near zero");	
-
-	/* wait trajectory end */
-	ret = wait_pos_end(csb);
-
-	/* set calibrate flag */
-	if(ret == 1){
-		maindspic.calib_x = 1;
-	}
-
-	DEBUG(E_USER_APP, "Calibration ends");	
-}
-
-void axis_x_set(struct cs_block *csb, int32_t dist_mm)
-{
-	int32_t val_imp;
-
-	/* check if axis is calibrated */	
-	if(!maindspic.calib_x){
-		printf("Axis is not calibrated yet\n\r");
-		return;	
-	}		
-
-	/* value in pulses */
-	val_imp = (int32_t)(dist_mm*DIST_IMP_MM);
-
-	/* check range */
-	if((val_imp < maindspic.pos_x_min_imp) || (val_imp > maindspic.pos_x_max_imp)){
-		printf("Consign out of range\n\r");
-		return;	
-	}
-
-	/* set consign */
-	cs_set_consign(&csb->cs, (int32_t)((dist_mm-maindspic.offset_x_mm)*DIST_IMP_MM));
-	DEBUG(E_USER_APP, "Set angle consign to %ld deg (%ld imp)",
-		dist_mm, (int32_t)(dist_mm*DIST_IMP_MM));
-
-	/* wait trajectory end */
-	wait_pos_end(csb);
-}
-
-double axis_x_get(void * enc_id)
-{
-	/* check if axis is calibrated */
-	if(!maindspic.){
-		printf("Axis is not calibrated yet\n\r");
-		return 0.0;	
-	}		
-
-	return ((double)(maindspic.offset_x_mm + (encoders_dspic_get_value(enc_id)/DIST_IMP_MM)));
-}
-
-
-/**********************************************************/
-/* Axis X mode1 */
-
-/* this structure is filled when cmd_axis_x_mode1 is parsed successfully */
-struct cmd_axis_x_mode1_result {
-	fixed_string_t arg0;
-	fixed_string_t arg1;
-};
-
-/* function called when cmd_axis_x_mode1 is parsed successfully */
-static void cmd_axis_x_mode1_parsed(void *parsed_result, void *data)
-{
-	struct cmd_axis_x_mode1_result *res = parsed_result;
-	double ret;
-
-	if (!strcmp_P(res->arg1, "autopos")) {
-		axis_x_autopos(&maindspic.axis_x, X_DAC, X_ENCODER, 0);
-	}
-	else if (!strcmp_P(res->arg1, "get")) {
-		ret = axis_x_get(X_ENCODER);
-		printf("axis_x pos = %.4f mm\n\r", ret);
-	}
-
-	printf("Done\n\r");
-}
-
-prog_char str_axis_x_mode1_arg0[] = "axis_x";
-parse_pgm_token_string_t cmd_axis_x_mode1_arg0 = TOKEN_STRING_INITIALIZER(struct cmd_axis_x_mode1_result, arg0, str_axis_x_mode1_arg0);
-prog_char str_axis_x_mode1_arg1[] = "autopos#get";
-parse_pgm_token_string_t cmd_axis_x_mode1_arg1 = TOKEN_STRING_INITIALIZER(struct cmd_axis_x_mode1_result, arg1, str_axis_x_mode1_arg1);
-
-prog_char help_axis_x_mode1[] = "Axis X positioning commands (mode1)";
-parse_pgm_inst_t cmd_axis_x_mode1 = {
-	.f = cmd_axis_x_mode1_parsed,  /* function to call */
-	.data = NULL,      /* 2nd arg of func */
-	.help_str = help_axis_x_mode1,
-	.tokens = {        /* token list, NULL terminated */
-		(prog_void *)&cmd_axis_x_mode1_arg0, 
-		(prog_void *)&cmd_axis_x_mode1_arg1, 
-		NULL,
-	},
-};
-
-/**********************************************************/
-/* axis_x mode2 */
-
-/* this structure is filled when cmd_axis_x_mode2 is parsed successfully */
-struct cmd_axis_x_mode2_result {
-	fixed_string_t arg0;
-	fixed_string_t arg1;
-	int16_t arg3;
-};
-
-/* function called when cmd_axis_x_mode2 is parsed successfully */
-static void cmd_axis_x_mode2_parsed(void *parsed_result, void *show)
-{
-	struct cmd_axis_x_mode2_result *res = parsed_result;
-
-	if(!show){
-		printf("Axis X offset = %ld mm\n\r", maindspic.offset_x_mm);
-		printf("Axis X range is [%ld %ld] mm\n\r",
-		 (int32_t)(maindspic.pos_x_min_imp/DIST_IMP_MM),
-		 (int32_t)(maindspic.pos_x_max_imp/DIST_IMP_MM));
-		goto end;
-	}
-	
-	if (!strcmp_P(res->arg1, "set")) {
-		axis_x_set(&maindspic.axis_x, res->arg3);
-	}
-	else if (!strcmp_P(res->arg1, "offset")) {
-		maindspic.offset_x_mm = res->arg3;
-		maindspic.pos_x_min_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + (5*DIST_IMP_MM);
-		maindspic.pos_x_max_imp = (int32_t)(maindspic.offset_x_mm*DIST_IMP_MM) + 54400 - (int32_t)(5*DIST_IMP_MM);
-
-		printf("Axis X range is [%ld %ld] mm\n\r",
-		 (int32_t)(maindspic.pos_x_min_imp/DIST_IMP_MM),
-		 (int32_t)(maindspic.pos_x_max_imp/DIST_IMP_MM));
-	}
-
- end:
-	printf("Done\n\r");
-}
-
-prog_char str_axis_x_mode2_arg0[] = "axis_z#axis_y";
-parse_pgm_token_string_t cmd_axis_x_mode2_arg0 = TOKEN_STRING_INITIALIZER(struct cmd_axis_x_mode2_result, arg0, str_axis_x_mode2_arg0);
-prog_char str_axis_x_mode2_arg1[] = "set#offset";
-parse_pgm_token_string_t cmd_axis_x_mode2_arg1 = TOKEN_STRING_INITIALIZER(struct cmd_axis_x_mode2_result, arg1, str_axis_x_mode2_arg1);
-parse_pgm_token_num_t cmd_axis_x_mode2_arg3 = TOKEN_NUM_INITIALIZER(struct cmd_axis_x_mode2_result, arg3, INT16);
-
-prog_char help_axis_x_mode2[] = "Axis positioning commands (mode2)";
-parse_pgm_inst_t cmd_axis_x_mode2 = {
-	.f = cmd_axis_x_mode2_parsed,  /* function to call */
-	.data = (void *)1,      /* 2nd arg of func */
-	.help_str = help_axis_x_mode2,
-	.tokens = {        /* token list, NULL terminated */
-		(prog_void *)&cmd_axis_x_mode2_arg0, 
-		(prog_void *)&cmd_axis_x_mode2_arg1, 
-		(prog_void *)&cmd_axis_x_mode2_arg3,
-		NULL,
-	},
-};
-
-/* show */
-
-/* this structure is filled when cmd_axis_x_mode2_show is parsed successfully */
-struct cmd_axis_x_mode2_show_result {
-	fixed_string_t show;
-};
-
-prog_char str_axis_x_mode2_show_arg0[] = "show";
-parse_pgm_token_string_t cmd_axis_x_mode2_show_arg3 = TOKEN_STRING_INITIALIZER(struct cmd_axis_x_mode2_show_result, show, str_axis_x_mode2_show_arg0);
-
-prog_char help_axis_x_mode2_show[] = "Show Axis X offset and range";
-parse_pgm_inst_t cmd_axis_x_mode2_show = {
-	.f = cmd_axis_x_mode2_parsed,  /* function to call */
-	.data = NULL,      /* 2nd arg of func */
-	.help_str = help_axis_x_mode2_show,
-	.tokens = {        /* token list, NULL terminated */
-		(prog_void *)&cmd_axis_x_mode2_arg0, 
-		(prog_void *)&cmd_axis_x_mode2_arg1, 
-		(prog_void *)&cmd_axis_x_mode2_show_arg3,
-		NULL,
-	},
-};
-
-#endif
 
