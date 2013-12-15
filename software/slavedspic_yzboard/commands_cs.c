@@ -65,7 +65,7 @@ struct cmd_cs_result {
 };
 
 /* token to be used for all cs-related commands */
-prog_char str_csb_name[] = "alpha#beta";
+prog_char str_csb_name[] = "y#z";
 parse_pgm_token_string_t cmd_csb_name_tok = TOKEN_STRING_INITIALIZER(struct cmd_cs_result, csname, str_csb_name);
 
 struct cs_block *cs_from_name(const char *name)

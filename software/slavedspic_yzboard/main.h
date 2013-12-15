@@ -45,14 +45,13 @@
 #define BRAKE_ON()	 do { pwm_mc_set(&gen.pwm_mc_mod2_ch1, 0); _LATC6  = 0; _LATC7 = 0; _LATA7 = 0;} while(0)
 #define BRAKE_OFF()	 do { _LATA7 = 1;} while(0)
 
+#define DIST_IMP_MM 100
 
-#define ENC_IMP_MM  40
-#define DIST_IMP_MM ((ENC_IMP_MM *4))
-
-#define Y_POS_MAX_IMP 	0
-#define Y_POS_MIN_IMP	0
-#define Z_POS_MAX_IMP	0
-#define Z_POS_MIN_IMP	0
+#define CALIB_Y_MM (-592.5)#define CALIB_Z_MM (-296.5)
+#define Y_POS_MAX_IMP 	+47700
+#define Y_POS_MIN_IMP	-59800
+#define Z_POS_MAX_IMP	+45035
+#define Z_POS_MIN_IMP	-30470
 
 #define Y_PWM_VALUE_MAX +2100
 #define Y_PWM_VALUE_MIN -2100
