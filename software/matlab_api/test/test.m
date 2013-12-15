@@ -7,9 +7,11 @@ path(path,'../cnp_commands/');
 close all
 global scnp;
 scnp = cnp_init('COM1');
+scnp = cnp_init_yz('COM2');
 
 % calibrate
 %cnp_x_calibrate();
+%cnp_yz_calibrate();
 %cnp_alpha_calibrate();
 %cnp_beta_calibrate();
 
@@ -30,6 +32,38 @@ hist(x_error);
 figure
 plot(x_cmd, x_pos,'+', x_cmd,x_cmd,'o');
 
+
+% y measurements
+y_cmd = -700:100:700;
+y_pos = zeros(1,length(y_cmd));
+for i=1:length(y_cmd)
+   cnp_y_set(y_cmd(i));
+   pause(1);
+   y_pos(i) = cnp_y_get();
+end
+
+% results
+figure
+y_error = y_cmd-y_pos;
+hist(y_error);
+figure
+plot(y_cmd, y_pos,'+', y_cmd,y_cmd,'o');
+
+% z measurements
+z_cmd = -700:100:700;
+z_pos = zeros(1,length(z_cmd));
+for i=1:length(z_cmd)
+   cnp_z_set(z_cmd(i));
+   pause(1);
+   z_pos(i) = cnp_z_get();
+end
+
+% results
+figure
+z_error = z_cmd-z_pos;
+hist(z_error);
+figure
+plot(z_cmd, z_pos,'+', z_cmd,z_cmd,'o');
 
 % alpha measurements
 alpha_cmd = -45:5:45;
@@ -67,6 +101,8 @@ plot(alpha_cmd,alpha_pos,'+', alpha_cmd,alpha_cmd,'o');
 
 % end cnp
 cnp_end();
+cnp_end_yz();
+
 
 
 
