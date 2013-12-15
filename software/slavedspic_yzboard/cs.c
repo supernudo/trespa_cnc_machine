@@ -115,16 +115,15 @@ void dspic_cs_init(void)
 
 	/* PID */
 	pid_init(&slavedspic.y.pid);
-	pid_set_gains(&slavedspic.y.pid, 0, 0, 0);
-	//pid_set_gains(&slavedspic.y.pid, 10000, 800, 20000);
+	pid_set_gains(&slavedspic.y.pid, 1800, 0, 1500);
 	pid_set_maximums(&slavedspic.y.pid, 0, 2100, 2100);
 	pid_set_out_shift(&slavedspic.y.pid, 5);	
 	pid_set_derivate_filter(&slavedspic.y.pid, 1);
 
 	/* QUADRAMP */
 	quadramp_init(&slavedspic.y.qr);
-	quadramp_set_1st_order_vars(&slavedspic.y.qr, 3, 3); 	/* set speed */
-	quadramp_set_2nd_order_vars(&slavedspic.y.qr, 1, 1); 	/* set accel */
+	quadramp_set_1st_order_vars(&slavedspic.y.qr, 50, 50); 	/* set speed */
+	quadramp_set_2nd_order_vars(&slavedspic.y.qr, 1, 1); 		/* set accel */
 
 	/* CS */
 	cs_init(&slavedspic.y.cs);
@@ -143,20 +142,19 @@ void dspic_cs_init(void)
 
 	/* PID */
 	pid_init(&slavedspic.z.pid);
-	pid_set_gains(&slavedspic.z.pid, 0, 0, 0);
-	//pid_set_gains(&slavedspic.z.pid, 850, 0, 7000);
+	pid_set_gains(&slavedspic.z.pid, 3000, 0, 1000);
 	pid_set_maximums(&slavedspic.z.pid, 0, 65000, 65000);
 	pid_set_out_shift(&slavedspic.z.pid, 1);	
 	pid_set_derivate_filter(&slavedspic.z.pid, 1);
 
 	/* QUADRAMP */
 	quadramp_init(&slavedspic.z.qr);
-	quadramp_set_1st_order_vars(&slavedspic.z.qr, NORMAL_SPEED, NORMAL_SPEED); 	/* set speed */
-	quadramp_set_2nd_order_vars(&slavedspic.z.qr, 1, 1); 								/* set accel */
+	quadramp_set_1st_order_vars(&slavedspic.z.qr, 70, 70); 	/* set speed */
+	quadramp_set_2nd_order_vars(&slavedspic.z.qr, 5, 5); 		/* set accel */
 
 	/* CS */
 	cs_init(&slavedspic.z.cs);
-	//cs_set_consign_filter(&slavedspic.z.cs, quadramp_do_filter, &slavedspic.z.qr);
+	cs_set_consign_filter(&slavedspic.z.cs, quadramp_do_filter, &slavedspic.z.qr);
 	cs_set_correct_filter(&slavedspic.z.cs, pid_do_filter, &slavedspic.z.pid);
 	cs_set_process_in(&slavedspic.z.cs, dac_set_and_save, DAC_MC_Z);
 	cs_set_process_out(&slavedspic.z.cs, encoders_dspic_get_value, ENCODER_Z);

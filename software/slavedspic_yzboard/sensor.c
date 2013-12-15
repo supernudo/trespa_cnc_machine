@@ -226,6 +226,7 @@ void sensor_init(void)
 }
 
 
-/* input interrupt connected to CALIB_Z */void __attribute__((__interrupt__, no_auto_psv)) _IC1Interrupt(void){	uint8_t flags;	_IC1IF=0;	IRQ_LOCK(flags);	encoders_dspic_set_value(ENCODER_Z, 0);	IRQ_UNLOCK(flags);}
+/* input interrupt connected to CALIB_Z */void __attribute__((__interrupt__, no_auto_psv)) _IC1Interrupt(void){	uint8_t flags;	_IC1IF=0;	IRQ_LOCK(flags);	encoders_dspic_set_value(ENCODER_Z, CALIB_Z_MM*DIST_IMP_MM);	IRQ_UNLOCK(flags);}
 
-/* input compare 2 interrupt connected to CALIB_Y */void __attribute__((__interrupt__, no_auto_psv)) _IC2Interrupt(void){	uint8_t flags;	_IC2IF=0;	IRQ_LOCK(flags);	encoders_dspic_set_value(ENCODER_Y, 0);	IRQ_UNLOCK(flags);}
+/* input compare 2 interrupt connected to CALIB_Y */void __attribute__((__interrupt__, no_auto_psv)) _IC2Interrupt(void){
+	uint8_t flags;	_IC2IF=0;	IRQ_LOCK(flags);	encoders_dspic_set_value(ENCODER_Y, CALIB_Y_MM*DIST_IMP_MM);	IRQ_UNLOCK(flags);}
