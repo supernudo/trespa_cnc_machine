@@ -148,13 +148,21 @@ int8_t test_pos_end(struct cs_block *csb, void * enc_id)
 
 	/* test FC */
 	if((enc_id == ENCODER_Y) && (sensor_get(S_Y_FC_L)||sensor_get(S_Y_FC_R))) {
-		ret = 1;
+
+		hard_stop(csb, enc_id);
+		pid_reset(&csb->pid);
+		bd_reset(&csb->bd);
+
 		NOTICE(E_USER_APP, "Positioning ends at FC");
 		return -1;
 	}
 
 	if((enc_id == ENCODER_Z) && (sensor_get(S_Z_FC_UP)||sensor_get(S_Z_FC_DOWN))) {
-		ret = 1;
+
+		hard_stop(csb, enc_id);
+		pid_reset(&csb->pid);
+		bd_reset(&csb->bd);
+
 		NOTICE(E_USER_APP, "Positioning ends at FC");
 		return -1;
 	}	
@@ -177,7 +185,7 @@ int8_t test_pos_end(struct cs_block *csb, void * enc_id)
 int8_t wait_pos_end(struct cs_block *csb, void * enc_id) {
 	uint8_t ret=0;
 	while(ret == 0)
-		ret =test_pos_end(csb, enc_id);
+		ret = test_pos_end(csb, enc_id);
 
 	return ret;
 }
@@ -322,7 +330,7 @@ void axis_yz_autopos(void)
 		return;
 	}
 
-	DEBUG(E_USER_APP, "Calib sensor reached, stopped");
+	DEBUG(E_USER_APP, "Calib sensors reached, stopped");
 
 	/* calib Y */
 	sensor_axis_y_enable_calib();
@@ -372,22 +380,31 @@ void axis_yz_autopos(void)
 	slavedspic.flags |= DO_CS;
 	DEBUG(E_USER_APP, "Goto zero");
 
+	time_wait_ms(2000);
+
 	/* wait trajectories end */
-	while( ret == 0 || ret2 == 0) {
+/*	ret = ret2 = 0;
+	while( (ret == 0) || (ret2 == 0)) {
 		ret = test_pos_end(&slavedspic.y, ENCODER_Y);
 		ret2 = test_pos_end(&slavedspic.z, ENCODER_Z);
 	}
+*/
+
 
 	/* set calibrate flag */
+	ret2 = wait_pos_end(&slavedspic.z, ENCODER_Z);
+	if(ret2 == 1)
+		slavedspic.z_calib = 1;
+	else
+		ERROR(E_USER_APP, "Axis Z fails going to zero with CS");
+
+
+	ret =	wait_pos_end(&slavedspic.y, ENCODER_Y);
 	if(ret == 1)
 		slavedspic.y_calib = 1;
 	else
 		ERROR(E_USER_APP, "Axis Y fails going to zero with CS");
 
-	if(ret2 == 1)
-		slavedspic.z_calib = 1;
-	else
-		ERROR(E_USER_APP, "Axis Z fails going to zero with CS");
 
 	DEBUG(E_USER_APP, "Calibration ends OK, axes shoud be at zero position");	
 }
@@ -551,8 +568,9 @@ static void cmd_axis_mode2_parsed(void *parsed_result, void *show)
 {
 	struct cmd_axis_mode2_result *res = parsed_result;
 
-	if (!strcmp_P(res->arg1, "axis_y"))
-	{
+	if (!strcmp_P(res->arg0, "axis_y"))
+	{		
+
 		if(!show){
 			printf("Axis Y offset = %ld mm\n\r", slavedspic.y_offset_mm);
 			printf("Axis Y range is [%ld %ld] mm\n\r",
@@ -560,7 +578,7 @@ static void cmd_axis_mode2_parsed(void *parsed_result, void *show)
 			 (int32_t)(slavedspic.y_pos_max_imp/DIST_IMP_MM));
 			goto end;
 		}
-		
+
 		if (!strcmp_P(res->arg1, "set")) {
 			axis_y_set(res->arg3);
 		}
@@ -579,8 +597,8 @@ static void cmd_axis_mode2_parsed(void *parsed_result, void *show)
 			 (int32_t)(slavedspic.y_pos_max_imp/DIST_IMP_MM));
 		}
 	}
-	else if (!strcmp_P(res->arg1, "axis_z"))
-	{
+	else if (!strcmp_P(res->arg0, "axis_z"))
+	{		
 		if(!show){
 			printf("Axis Z offset = %ld mm\n\r", slavedspic.z_offset_mm);
 			printf("Axis Z range is [%ld %ld] mm\n\r",
@@ -588,12 +606,12 @@ static void cmd_axis_mode2_parsed(void *parsed_result, void *show)
 			 (int32_t)(slavedspic.z_pos_max_imp/DIST_IMP_MM));
 			goto end;
 		}
-		
+
 		if (!strcmp_P(res->arg1, "set")) {
 			axis_z_set(res->arg3);
 		}
 		else if (!strcmp_P(res->arg1, "offset")) {
-
+	
 			if(res->arg3 < 0) {
 				printf_P(PSTR("Bad arguments\r\n"));
 				return;
@@ -645,7 +663,7 @@ parse_pgm_token_string_t cmd_axis_mode2_show_arg3 = TOKEN_STRING_INITIALIZER(str
 prog_char help_axis_mode2_show[] = "Show Axis offset and range";
 parse_pgm_inst_t cmd_axis_mode2_show = {
 	.f = cmd_axis_mode2_parsed,  /* function to call */
-	.data = NULL,      /* 2nd arg of func */
+	.data = (void *)0,      /* 2nd arg of func */
 	.help_str = help_axis_mode2_show,
 	.tokens = {        /* token list, NULL terminated */
 		(prog_void *)&cmd_axis_mode2_arg0, 

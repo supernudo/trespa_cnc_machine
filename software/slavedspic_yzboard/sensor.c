@@ -56,10 +56,10 @@ struct sensor_filter {
 };
 
 static struct sensor_filter sensor_filter[SENSOR_MAX] = {
-	[S_Y_CALIB] 	= { 1, 0, 0, 1, 0, 0 }, 	/* 0 */
+	[S_Y_CALIB] 	= { 150, 0, 0, 50, 0, 0 }, 	/* 0 */
 	[S_Y_FC_R] 		= { 1, 0, 0, 1, 0, 0 }, 	/* 1 */
 	[S_Y_FC_L] 		= { 1, 0, 0, 1, 0, 0 }, 	/* 2 */
-	[S_Z_CALIB] 	= { 1, 0, 0, 1, 0, 0 }, 	/* 3 */
+	[S_Z_CALIB] 	= { 150, 0, 0, 50, 0, 0 }, 	/* 3 */
 	[S_Z_FC_UP] 	= { 1, 0, 0, 1, 0, 0 }, 	/* 4 */
 	[S_Z_FC_DOWN] 	= { 1, 0, 0, 1, 0, 0 }, 	/* 5 */
 	[S_RESERVED1] 	= { 1, 0, 0, 1, 0, 0 }, 	/* 6 */
