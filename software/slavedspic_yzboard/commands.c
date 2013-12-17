@@ -57,6 +57,7 @@ extern parse_pgm_inst_t cmd_blocking_i_show;
 extern parse_pgm_inst_t cmd_event;
 extern parse_pgm_inst_t cmd_axis_mode1;
 extern parse_pgm_inst_t cmd_axis_mode2;
+extern parse_pgm_inst_t cmd_axis_mode2_show;
 
 /* in progmem */
 parse_pgm_ctx_t main_ctx[] = {
@@ -90,5 +91,6 @@ parse_pgm_ctx_t main_ctx[] = {
 	(parse_pgm_inst_t *)&cmd_event,
 	(parse_pgm_inst_t *)&cmd_axis_mode1,
 	(parse_pgm_inst_t *)&cmd_axis_mode2,
+	(parse_pgm_inst_t *)&cmd_axis_mode2_show,
 	NULL,
 };

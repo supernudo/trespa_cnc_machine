@@ -516,7 +516,7 @@ parse_pgm_token_string_t cmd_axis_x_mode2_show_arg3 = TOKEN_STRING_INITIALIZER(s
 prog_char help_axis_x_mode2_show[] = "Show Axis X offset and range";
 parse_pgm_inst_t cmd_axis_x_mode2_show = {
 	.f = cmd_axis_x_mode2_parsed,  /* function to call */
-	.data = NULL,      /* 2nd arg of func */
+	.data = (void *)0,      /* 2nd arg of func */
 	.help_str = help_axis_x_mode2_show,
 	.tokens = {        /* token list, NULL terminated */
 		(prog_void *)&cmd_axis_x_mode2_arg0, 
