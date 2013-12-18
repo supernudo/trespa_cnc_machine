@@ -45,7 +45,7 @@ if strcmp(cmd, 'axis_x') || strcmp(cmd, 'alpha') || strcmp(cmd, 'beta')
     else
         fprintf(scnp.serial,[cmd ' ' arg1])
     end    
-elseif strcmp(cmd, 'axis_y') || strcmp(cmd, 'axis_z')
+elseif strcmp(cmd, 'axis_y') || strcmp(cmd, 'axis_z') || strcmp(cmd, 'axis_yz')
     if nargin == 3
         fprintf(scnp.serial_yz,[cmd ' ' arg1 ' ' num2str(arg2)])
     else
