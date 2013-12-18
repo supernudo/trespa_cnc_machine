@@ -1,0 +1,6 @@
+function range = cnp_x_set(pos_mm)
+
+scnp_cmd('axis_x', 'set', pos_mm);
+range = [scnp.x.cmd_max_mm scnp.x.cmd_min_mm];
+
+end
