@@ -7,25 +7,31 @@ function scnp = cnp_init_yz (port)
 % port: serial port conection (COM2 by default).
 %
 
+global scnp;
+scnp_temp = scnp;
+
 %% Create serial conection
 if nargin == 1
-    scnp.serial_yz = serial(port, 'BaudRate', 115200);
+    scnp_temp.serial_yz = serial(port, 'BaudRate', 115200);
 else
-    scnp.serial_yz = serial('COM2', 'BaudRate', 115200);
+    scnp_temp.serial_yz = serial('COM2', 'BaudRate', 115200);
 end
 
 %% Init structure
-scnp.y.cmd_mm = 0;
-scnp.y.cmd_min_mm = 0;
-scnp.y.cmd_max_mm = 0;
-scnp.y.pos_mm = 0.0;
-scnp.y.offset = 0;
 
-scnp.z.cmd_mm = 0;
-scnp.z.cmd_min_mm = 0;
-scnp.z.cmd_max_mm = 0;
-scnp.z.pos_mm = 0.0;
-scnp.z.offset = 0;
+scnp_temp.y.cmd_mm = 0;
+scnp_temp.y.cmd_min_mm = 0;
+scnp_temp.y.cmd_max_mm = 0;
+scnp_temp.y.pos_mm = 0.0;
+scnp_temp.y.offset = 0;
+
+scnp_temp.z.cmd_mm = 0;
+scnp_temp.z.cmd_min_mm = 0;
+scnp_temp.z.cmd_max_mm = 0;
+scnp_temp.z.pos_mm = 0.0;
+scnp_temp.z.offset = 0;
+
+scnp = scnp_temp
 
 %% Open serial conection
 fopen(scnp.serial_yz);

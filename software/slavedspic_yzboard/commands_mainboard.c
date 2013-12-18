@@ -140,7 +140,8 @@ int8_t test_pos_end(struct cs_block *csb, void * enc_id)
 	uint8_t ret=0;
 
 	/* test traj end */
-	if(cs_get_consign(&csb->cs) == cs_get_filtered_consign(&csb->cs)){
+	if((cs_get_consign(&csb->cs) == cs_get_filtered_consign(&csb->cs)) &&
+		(ABS(cs_get_error(&csb->cs)) < 10) ){
 		ret = 1;
 		NOTICE(E_USER_APP, "Positioning ends OK");
 		return 1;
@@ -373,40 +374,45 @@ void axis_yz_autopos(void)
 	DEBUG(E_USER_APP, "Axis Z calibration ends");
 
 
-	/* enable CS and goto zero */
-	cs_set_consign(&slavedspic.y.cs, 0);
-	cs_set_consign(&slavedspic.z.cs, 0);
+	/* reset CS stuff and enable it */
+	cs_set_consign(&slavedspic.y.cs, CALIB_Y_MM);
+	cs_set_consign(&slavedspic.z.cs, CALIB_Z_MM);
+
+	hard_stop(&slavedspic.y, ENCODER_Y);
+	pid_reset(&slavedspic.y.pid);
+	bd_reset(&slavedspic.y.bd);
+
+	hard_stop(&slavedspic.z, ENCODER_Z);
+	pid_reset(&slavedspic.z.pid);
+	bd_reset(&slavedspic.z.bd);
+
 
 	slavedspic.flags |= DO_CS;
-	DEBUG(E_USER_APP, "Goto zero");
-
-	time_wait_ms(2000);
+	DEBUG(E_USER_APP, "Control Systems reset and enabled");
 
 	/* wait trajectories end */
-/*	ret = ret2 = 0;
+	ret = ret2 = 0;
 	while( (ret == 0) || (ret2 == 0)) {
-		ret = test_pos_end(&slavedspic.y, ENCODER_Y);
-		ret2 = test_pos_end(&slavedspic.z, ENCODER_Z);
+		if(!ret)
+			ret = test_pos_end(&slavedspic.y, ENCODER_Y);
+		if(!ret2)
+			ret2 = test_pos_end(&slavedspic.z, ENCODER_Z);
 	}
-*/
 
 
 	/* set calibrate flag */
-	ret2 = wait_pos_end(&slavedspic.z, ENCODER_Z);
 	if(ret2 == 1)
 		slavedspic.z_calib = 1;
 	else
-		ERROR(E_USER_APP, "Axis Z fails going to zero with CS");
+		ERROR(E_USER_APP, "Axis Z CS fails");
 
-
-	ret =	wait_pos_end(&slavedspic.y, ENCODER_Y);
 	if(ret == 1)
 		slavedspic.y_calib = 1;
 	else
-		ERROR(E_USER_APP, "Axis Y fails going to zero with CS");
+		ERROR(E_USER_APP, "Axis Y CS fails");
 
 
-	DEBUG(E_USER_APP, "Calibration ends OK, axes shoud be at zero position");	
+	DEBUG(E_USER_APP, "Calibration ends SUCESSFULY");	
 }
 
 
