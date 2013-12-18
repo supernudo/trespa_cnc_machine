@@ -115,14 +115,14 @@ void dspic_cs_init(void)
 
 	/* PID */
 	pid_init(&slavedspic.y.pid);
-	pid_set_gains(&slavedspic.y.pid, 1800, 0, 1500);
+	pid_set_gains(&slavedspic.y.pid, 1500, 0, 1000);
 	pid_set_maximums(&slavedspic.y.pid, 0, 2100, 2100);
 	pid_set_out_shift(&slavedspic.y.pid, 5);	
 	pid_set_derivate_filter(&slavedspic.y.pid, 1);
 
 	/* QUADRAMP */
 	quadramp_init(&slavedspic.y.qr);
-	quadramp_set_1st_order_vars(&slavedspic.y.qr, 70, 70); 	/* set speed */
+	quadramp_set_1st_order_vars(&slavedspic.y.qr, 1000, 1000); 	/* set speed */
 	quadramp_set_2nd_order_vars(&slavedspic.y.qr, 5, 5); 		/* set accel */
 
 	/* CS */

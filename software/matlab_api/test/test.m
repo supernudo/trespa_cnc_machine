@@ -5,16 +5,20 @@ path(path,'../cnp_commands/');
 
 % init
 close all
+clear all
 global scnp;
-scnp = cnp_init('COM1');
-scnp = cnp_init_yz('COM2');
+%scnp = cnp_init('COM16');
+scnp = cnp_init_yz('COM13')
+
 
 % calibrate
 %cnp_x_calibrate();
-%cnp_yz_calibrate();
+cnp_yz_calibrate();
 %cnp_alpha_calibrate();
 %cnp_beta_calibrate();
 
+cnp_end_yz();
+break
 
 % x measurements
 x_cmd = 500:250:3000;
