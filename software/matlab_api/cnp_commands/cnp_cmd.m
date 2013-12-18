@@ -14,7 +14,7 @@ global scnp
 
 %% Check input args
 if nargin < 2
-    display('No enought arguments')
+    display('>> cnp: No enought arguments')
     return
 end
 

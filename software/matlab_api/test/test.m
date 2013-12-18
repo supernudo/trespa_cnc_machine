@@ -6,19 +6,16 @@ path(path,'../cnp_commands/');
 % init
 close all
 clear all
-global scnp;
-%scnp = cnp_init('COM16');
-scnp = cnp_init_yz('COM13')
+global scnp
 
+% (x,alpha,beta) serial port, (y,z) serial port
+scnp = cnp_init('COM16', 'COM13'); 
 
 % calibrate
-%cnp_x_calibrate();
+cnp_x_calibrate();
 cnp_yz_calibrate();
-%cnp_alpha_calibrate();
-%cnp_beta_calibrate();
-
-cnp_end_yz();
-break
+cnp_alpha_calibrate();
+cnp_beta_calibrate();
 
 % x measurements
 x_cmd = 500:250:3000;
@@ -38,7 +35,7 @@ plot(x_cmd, x_pos,'+', x_cmd,x_cmd,'o');
 
 
 % y measurements
-y_cmd = -700:100:700;
+y_cmd = -300:50:300;
 y_pos = zeros(1,length(y_cmd));
 for i=1:length(y_cmd)
    cnp_y_set(y_cmd(i));
@@ -54,7 +51,7 @@ figure
 plot(y_cmd, y_pos,'+', y_cmd,y_cmd,'o');
 
 % z measurements
-z_cmd = -700:100:700;
+z_cmd = -300:50:300;
 z_pos = zeros(1,length(z_cmd));
 for i=1:length(z_cmd)
    cnp_z_set(z_cmd(i));
@@ -87,25 +84,24 @@ plot(alpha_cmd,alpha_pos,'+', alpha_cmd,alpha_cmd,'o');
 
 
 % beta measurements
-%beta_cmd = scnp.x.cmd_min_mm:beta_step_deg:beta_step_deg*floor(scnp.x.cmd_mabeta_deg/beta_step_deg);
-% beta_cmd = -25:5:25;
-% beta_pos = zeros(1,length(beta_cmd));
-% for i=1:length(beta_cmd)
-%    cnp_beta_set(beta_cmd(i));
-%    pause(1);
-%    beta_pos(i) = cnp_beta_get();
-% end
-% 
-% % results
-% figure
-% beta_error = beta_cmd-beta_pos;
-% hist(beta_error);
-% figure
-% plot(beta_cmd, beta_pos,'x', beta_cmd,beta_cmd,'o');
+beta_cmd = scnp.x.cmd_min_mm:beta_step_deg:beta_step_deg*floor(scnp.x.cmd_mabeta_deg/beta_step_deg);
+beta_cmd = -25:5:25;
+beta_pos = zeros(1,length(beta_cmd));
+for i=1:length(beta_cmd)
+   cnp_beta_set(beta_cmd(i));
+   pause(1);
+   beta_pos(i) = cnp_beta_get();
+end
+
+% results
+figure
+beta_error = beta_cmd-beta_pos;
+hist(beta_error);
+figure
+plot(beta_cmd, beta_pos,'x', beta_cmd,beta_cmd,'o');
 
 % end cnp
 cnp_end();
-cnp_end_yz();
 
 
 
