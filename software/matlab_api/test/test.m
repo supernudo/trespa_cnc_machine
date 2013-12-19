@@ -9,9 +9,9 @@ clear all
 global scnp
 
 % (x,alpha,beta) serial port, (y,z) serial port
-scnp = cnp_init('COM16', 'COM13'); 
+scnp = cnp_init('COM1', 'COM7'); 
 
-% calibrate
+%calibrate
 cnp_x_calibrate();
 cnp_yz_calibrate();
 cnp_alpha_calibrate();
@@ -84,7 +84,6 @@ plot(alpha_cmd,alpha_pos,'+', alpha_cmd,alpha_cmd,'o');
 
 
 % beta measurements
-beta_cmd = scnp.x.cmd_min_mm:beta_step_deg:beta_step_deg*floor(scnp.x.cmd_mabeta_deg/beta_step_deg);
 beta_cmd = -25:5:25;
 beta_pos = zeros(1,length(beta_cmd));
 for i=1:length(beta_cmd)

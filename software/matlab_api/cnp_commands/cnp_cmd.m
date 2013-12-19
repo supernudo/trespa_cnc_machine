@@ -64,7 +64,7 @@ timeout = 0;
 
 % set serial timeout
 scnp.serial.Timeout = 60;
-%scnp.serial.ErrorFcn = {'timeout_flag_on'};
+% scnp.serial.ErrorFcn = {'timeout_flag_on'};
 
 % read lines until done or timeout
 while(done == 0 && timeout == 0)
@@ -72,18 +72,18 @@ while(done == 0 && timeout == 0)
     % read line
     if strcmp(cmd, 'axis_x') || strcmp(cmd, 'alpha') || strcmp(cmd, 'beta')
         line = fgetl(scnp.serial);
-    elseif strcmp(cmd, 'axis_y') || strcmp(cmd, 'axis_z')
+    elseif strcmp(cmd, 'axis_y') || strcmp(cmd, 'axis_z')|| strcmp(cmd, 'axis_yz')
         line = fgetl(scnp.serial_yz);
     end
     
     % echo, skip lines depens on command
     if skip_line == 0
-        display(['>> ' line])
+        display(['>> ' line]);
     else
        skip_line = skip_line - 1;
     end
 
-    % parse sintaxis errors 
+%     parse sintaxis errors 
     if strcmp(line, 'Ambiguous command')
        display('>> cnp: Ambiguous command');
     end
