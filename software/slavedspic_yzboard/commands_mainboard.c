@@ -302,6 +302,17 @@ void axis_yz_autopos(void)
 
 	DEBUG(E_USER_APP, "Ready for axes calibration");
 
+	/* AVOID CRASSING */
+	dac_mc_set(DAC_MC_Z, Z_DAC_VALUE_MAX);
+	WAIT_COND_OR_TIMEOUT(sensor_get(S_Z_FC_UP), 3000);
+	dac_mc_set(DAC_MC_Z, 0);
+
+	pwm_mc_set(PWM_MC_Y, -Y_PWM_VALUE_MAX); 
+	DEBUG(E_USER_APP, "Goto calib sensor side (left and down)");
+	
+	/* wait for sensor activation and stop */
+	while(!sensor_get(S_Y_CALIB)  && !sensor_get(S_Y_FC_L));
+
 	/* goto calib sensor side, left and down */
 	pwm_mc_set(PWM_MC_Y, -Y_PWM_VALUE_MAX); 
 	dac_mc_set(DAC_MC_Z, -Z_DAC_VALUE_MAX);
