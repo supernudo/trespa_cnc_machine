@@ -1,1 +1,8 @@
 ./docs
+./software/aversive4dspic_old
+./software/maindspic/compiled_files
+./software/maindspic/output_files
+./software/slavedspic/compiled_files
+./software/slavedspic/output_files
+./software/slavedspic_yzboard/compiled_files
+./software/slavedspic_yzboard/output_files
