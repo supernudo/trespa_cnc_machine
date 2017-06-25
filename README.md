@@ -1,8 +1,6 @@
 # CNC machine of 5 axes made of Trespa
 
-## Description
-
-This machine was designed and built for the Department of Electronics of Alcala University. It's made of Trespa and aluminum guides. It has 5 degrees of freedom, 3 linear axes (x,y,z) and 2 angular ones (yaw and pitch). Now a days this machine is been used for sensor system modelating and calibration of novel sensors systems. Notice that even the transmission gears are built using Trespa.
+A machine was designed and built for the Department of Electronics of Alcala University. It's made of Trespa and aluminum guides. It has 5 degrees of freedom, 3 linear axes (x,y,z) and 2 angular ones (yaw and pitch). Now a days this machine is been used for sensor system modelating and calibration of novel sensors systems. Notice that even the transmission gears are built using Trespa.
 
 <p align="center">
 <a href="http://www.youtube.com/watch?feature=player_embedded&v=2beidHu1izE
