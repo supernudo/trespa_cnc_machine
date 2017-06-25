@@ -6,7 +6,11 @@ CNC machinie for modeling of novel optical sensor systems.
 
 This machine was designed and built for the Department of Electronics of Alcala University. It's made of Trespa and aluminum guides. It has 5 degrees of freedom, 3 linear axes (x,y,z) and 2 angular ones (yaw and pitch). Now a days this machine is been used for sensor system modelating and calibration of novel sensors systems. Notice that even the transmission gears are built using Trespa.
 
-[![Trespa CNC Machine](http://img.youtube.com/vi/2beidHu1izE/0.jpg)](http://www.youtube.com/watch?v=2beidHu1izE "Trespa CNC Machine")
+<p align="center">
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=2beidHu1izE
+" target="_blank"><img src="http://img.youtube.com/vi/2beidHu1izE/0.jpg"
+alt="Trespa CNC Machine" width="240*2" height="180*2" border="10" /></a>
+</p>
 
 ## Authors
 * Mechanics: Mario Inglés Garcés
