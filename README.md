@@ -5,7 +5,7 @@ A machine was designed and built for the Department of Electronics of Alcala Uni
 <p align="center">
 <a href="http://www.youtube.com/watch?feature=player_embedded&v=2beidHu1izE
 " target="_blank"><img src="http://img.youtube.com/vi/2beidHu1izE/0.jpg"
-alt="Trespa CNC Machine" width="240*2" height="180*2" border="10" /></a>
+alt="Trespa CNC Machine" width="240*2" height="180*2" /></a>
 </p>
 
 ## Authors
