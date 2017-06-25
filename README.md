@@ -1,6 +1,4 @@
-# Trespa CNC Machine
-
-CNC machinie for modeling of novel optical sensor systems.
+# CNC machine of 5 axes made of Trespa
 
 ## Description
 
